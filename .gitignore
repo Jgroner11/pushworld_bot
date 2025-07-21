@@ -4,5 +4,7 @@ __pycache__/
 *.pyo
 .DS_Store
 
-puzzle_images
+# Ignore all images except the ones for manually created puzzles
+puzzle_images/**
+!puzzle_images/manual/
 !puzzle_images/manual/*.png
