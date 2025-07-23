@@ -12,39 +12,39 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from absl import app
 from pathlib import Path
-import numpy as np
+
 import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
 
+from pushworld.dm_env import PushWorldEnv
 from pushworld.puzzle import NUM_ACTIONS
-from pushworld.gym_env import PushWorldEnv
 
-from absl import app
 
 matplotlib.use('TkAgg')
 
 
 def main(argv):
     # Choose puzzle
-    path = "benchmark/puzzles/manual/actor_only.pwp"
+    path = "benchmark/puzzles/manual/simple.pwp"
     project_root = Path(__file__).resolve().parents[2]
 
     # Create gym environment
     env = PushWorldEnv(str(project_root / path))
-    
+
     # Reset the environment and show observation
-    image, info = env.reset()
+    timestep = env.reset()
     plt.figure(figsize=(5, 5))
-    plt.imshow(image)
+    plt.imshow(timestep.observation)
     plt.ion()
     plt.show()
 
     # Randomly take 10 actions and show observation
     for _ in range(10):
-        rets = env.step(np.random.randint(NUM_ACTIONS))
-        image = rets[0]
-        plt.imshow(image)
+        timestep = env.step(np.random.randint(NUM_ACTIONS))
+        plt.imshow(timestep.observation)
         plt.draw()
         plt.pause(0.5)
 
