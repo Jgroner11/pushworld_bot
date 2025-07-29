@@ -34,14 +34,15 @@ class IntEncoder:
         self.max_size = max_size
 
     def encode(self, x):
-        if x in self._map:
-            return self._map[x]
+        key =  tuple(x.ravel().tolist())
+        if key in self._map:
+            return self._map[key]
         elif self._size == self.max_size:
             raise Exception("Encoder ran out of unique mappings")
         else:
-            self._map[x] = self._size
+            self._map[key] = self._size
             self._size += 1
-        
+            return self._map[key]
         
     def encode_array(self, arr):
         r = np.array(dtype=np.int64)
@@ -80,7 +81,7 @@ def main(argv):
     # Randomly take 10 actions and show observation
     for i in range(seq_len):
         action = np.random.randint(NUM_ACTIONS)
-
+        
         o[i] = encoder.encode(image)
         a[i] = action
 
@@ -88,9 +89,9 @@ def main(argv):
 
         image = rets[0]
 
-        # plt.imshow(image)
-        # plt.draw()
-        # plt.pause(0.01)
+        plt.imshow(image)
+        plt.draw()
+        plt.pause(0.01)
 
     n_clones = np.ones(n_obs, dtype=np.int64) * 1
 

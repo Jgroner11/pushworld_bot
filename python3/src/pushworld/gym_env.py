@@ -15,7 +15,7 @@
 import random
 from typing import Any, Dict, Optional, Tuple, Union
 
-import gym
+import gymnasium as gym
 import numpy as np
 
 from pushworld.config import PUZZLE_EXTENSION
