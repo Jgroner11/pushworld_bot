@@ -72,10 +72,10 @@ def main(argv):
 
     image, info = env.reset()
     
-    # plt.figure(figsize=(5, 5))
-    # plt.imshow(image)
-    # plt.ion()
-    # plt.show()
+    plt.figure(figsize=(5, 5))
+    plt.imshow(image)
+    plt.ion()
+    plt.show()
 
 
     # Randomly take 10 actions and show observation
@@ -91,7 +91,7 @@ def main(argv):
 
         plt.imshow(image)
         plt.draw()
-        plt.pause(0.01)
+        plt.pause(0.5)
 
     n_clones = np.ones(n_obs, dtype=np.int64) * 1
 
