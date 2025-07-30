@@ -58,7 +58,7 @@ def main(argv):
     path = "benchmark/puzzles/manual/actor_only.pwp"
 
 
-    project_root = Path(__file__).resolve().parents[2]
+    project_root = Path(__file__).resolve().parents[1]
 
     
     # Create gym environment
