@@ -379,7 +379,7 @@ def main():
         "max_epochs": args.max_epochs,
     }
 
-    logger = WandbLogger(project='cscg-pushworld', entity='cscg-group', mode='disabled' if args.no_log else 'online')
+    logger = WandbLogger(project='cscg-pushworld', entity='jacob-simon', mode='disabled' if args.no_log else 'online')
     logger.experiment.config.update(config, allow_val_change=True)
 
     callbacks = [

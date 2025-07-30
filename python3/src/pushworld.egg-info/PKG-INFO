@@ -26,6 +26,7 @@ Requires-Dist: mypy-extensions==1.0.0
 Requires-Dist: networkx==2.6.3
 Requires-Dist: nodeenv==1.7.0
 Requires-Dist: numpy==1.21.4
+Requires-Dist: numba==0.57.0
 Requires-Dist: packaging==23.0
 Requires-Dist: pathspec==0.11.0
 Requires-Dist: pillow==9.4.0
@@ -45,3 +46,4 @@ Requires-Dist: tomli==2.0.1
 Requires-Dist: tqdm==4.64.1
 Requires-Dist: typing-extensions==4.4.0
 Requires-Dist: virtualenv==20.19.0
+Requires-Dist: gymnasium==1.2.0

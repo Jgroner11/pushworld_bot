@@ -42,4 +42,7 @@ tqdm==4.64.1
 typing-extensions==4.4.0
 virtualenv==20.19.0
 gymnasium==1.2.0
+torch
+lightning
+wandb
 
