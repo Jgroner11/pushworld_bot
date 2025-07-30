@@ -1,5 +1,6 @@
 README.md
 pyproject.toml
+requirements.txt
 src/pushworld/__init__.py
 src/pushworld/benchmark_rgd.py
 src/pushworld/config.py
@@ -15,6 +16,7 @@ src/pushworld/visualization.py
 src/pushworld.egg-info/PKG-INFO
 src/pushworld.egg-info/SOURCES.txt
 src/pushworld.egg-info/dependency_links.txt
+src/pushworld.egg-info/requires.txt
 src/pushworld.egg-info/top_level.txt
 src/pushworld/utils/__init__.py
 src/pushworld/utils/env_utils.py
