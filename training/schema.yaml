@@ -1,0 +1,55 @@
+puzzle:
+  default: "manual/actor.pwd"
+  description: "Path to the .pwd puzzle file relative to the benchmark folder."
+
+# sequence_length:
+#   default: 200
+#   description: "Amount of data the agent collects"
+
+# puzzle_reset_method:
+#   default: "never"
+#   description: "How to reset the puzzle environment."
+#   options: ["never"]
+
+# data_collection_method:
+#   default: "random_action_selection"
+#   description: "Method for collecting training sequences"
+#   options: ["random_action_selection"]
+
+# data_sequence_length:
+#   default: 500
+#   description: "Length of sequences used for training"
+
+# model_architecture:
+#   number_of_classes:
+#     default: 10
+#     description: "Number of output classes in the model"
+#   cscg_n_clones:
+#     default: 4
+#     description: "Number of clones in the CSCG model"
+#   encoder_type:
+#     default: "VisionModel"
+#     description: "Type of encoder used for input features"
+#     options: ["IntEncoder", "VectorQuantizer", "VisionModel"]
+
+# vision_model:
+#   class_path:
+#     default: "torchvision.models.resnet18"
+#     description: "Full import path to the vision model class"
+#   kwargs:
+#     default:
+#       pretrained: false
+#       num_classes: 128
+#     description: "Keyword arguments for initializing the vision model"
+
+# cost_function_regularization_term:
+#   default: 0.01
+#   description: "Regularization strength for the loss function"
+
+# training_method:
+#   gd_steps_before_em:
+#     default: 10
+#     description: "Number of gradient descent steps before switching to EM"
+#   em_steps_before_gd:
+#     default: 5
+#     description: "Number of EM steps before switching back to gradient descent"
