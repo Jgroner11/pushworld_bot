@@ -35,3 +35,35 @@ class IntEncoder(nn.Module):
         for x in arr:
             r.append(self.encode(x))
         return r
+
+class SmallCNN(nn.Module):
+    def __init__(self, in_channels: int, num_actions: int, grid_size: int):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Conv2d(in_channels, 32, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.BatchNorm2d(32),
+            nn.Conv2d(32, 64, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2),  # H/2
+            nn.Conv2d(64, 128, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2),  # H/4
+            nn.Flatten(),
+        )
+        # Compute flattened size with a dummy forward
+        with torch.no_grad():
+            dummy = torch.zeros(1, in_channels, grid_size, grid_size)
+            flat = self.net(dummy).shape[-1]
+        self.head = nn.Sequential(
+            nn.Linear(flat, 256),
+            nn.ReLU(inplace=True),
+            nn.Dropout(p=0.1),
+            nn.Linear(256, num_actions),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        z = self.net(x)
+        logits = self.head(z)
+        return logits
+    
