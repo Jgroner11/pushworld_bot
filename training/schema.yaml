@@ -1,55 +1,19 @@
 puzzle:
-  default: "manual/actor.pwd"
-  description: "Path to the .pwd puzzle file relative to the benchmark folder."
+  default: "manual/actor_only"
+  description: "Which puzzle to run. All puzzles should be placed in benchmark/puzzles, and this field should include the subdirectory and the puzzle name."
 
-# sequence_length:
-#   default: 200
-#   description: "Amount of data the agent collects"
+encoder:
+  default: "IntEncoder"
+  description: "An nn.Module for mapping an input to an observation. See encoders.py for list of options."
 
-# puzzle_reset_method:
-#   default: "never"
-#   description: "How to reset the puzzle environment."
-#   options: ["never"]
+n_obs: 
+  default: 10
+  description: "The number of observations. The encoder maps an input to an observation and the cscg takes in a sequence of observations and predicts which latent clone of the observation the agent is in."
 
-# data_collection_method:
-#   default: "random_action_selection"
-#   description: "Method for collecting training sequences"
-#   options: ["random_action_selection"]
+clones_per_obs:
+  default: 1
+  description: "The number of latent states the cscg assigns to each observation."
 
-# data_sequence_length:
-#   default: 500
-#   description: "Length of sequences used for training"
-
-# model_architecture:
-#   number_of_classes:
-#     default: 10
-#     description: "Number of output classes in the model"
-#   cscg_n_clones:
-#     default: 4
-#     description: "Number of clones in the CSCG model"
-#   encoder_type:
-#     default: "VisionModel"
-#     description: "Type of encoder used for input features"
-#     options: ["IntEncoder", "VectorQuantizer", "VisionModel"]
-
-# vision_model:
-#   class_path:
-#     default: "torchvision.models.resnet18"
-#     description: "Full import path to the vision model class"
-#   kwargs:
-#     default:
-#       pretrained: false
-#       num_classes: 128
-#     description: "Keyword arguments for initializing the vision model"
-
-# cost_function_regularization_term:
-#   default: 0.01
-#   description: "Regularization strength for the loss function"
-
-# training_method:
-#   gd_steps_before_em:
-#     default: 10
-#     description: "Number of gradient descent steps before switching to EM"
-#   em_steps_before_gd:
-#     default: 5
-#     description: "Number of EM steps before switching back to gradient descent"
+seq_len:
+  default: 10
+  description: "The number of actions to take in the environment. Each action steps the environment once and adds another data point."

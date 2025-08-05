@@ -62,7 +62,7 @@ def main(argv):
 
     
     # Create gym environment
-    env = PushWorldEnv(str(project_root / path), border_width=1, pixels_per_cell=5)
+    env = PushWorldEnv(str(project_root / path))
     
     # Reset the environment and show observation
     encoder = IntEncoder(max_size=n_obs)

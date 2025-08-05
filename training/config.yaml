@@ -1,7 +1,2 @@
-env: "puzzles/maze2.pwd"
-puzzle_reset_method: "every_k"
-model_architecture:
-  number_of_classes: 20
-vision_model:
-  kwargs:
-    pretrained: true
+n_obs: 10
+seq_len: 10
