@@ -1,12 +1,17 @@
 import yaml
 from pathlib import Path
+import shutil
+import pickle
+
 import numpy as np
+
 from pushworld.gym_env import PushWorldEnv
 from pushworld.puzzle import NUM_ACTIONS
 
 from encoders import *
 from chmm_actions import CHMM
 
+project_root = Path(__file__).resolve().parents[1]
 
 class ConfigWrapper(dict):
     """Dict with attribute-style access. So that config parameters can be accessed with config.parameter """
@@ -20,8 +25,33 @@ class ConfigWrapper(dict):
     __delattr__ = dict.__delitem__
 
 
+def assign_name(name, dir, overwrite):
+    if not (dir / name).exists():
+        return name
+    i = 1
+    while (dir / f"{name}{i}").exists():
+        i += 1
+    if i == 1 and overwrite:
+        return name
+    if overwrite:
+        i -= 1
+    return f"{name}{i}"
+
+def delete_all_experiments():
+    for item in (project_root / "experiments").iterdir():
+        if item.is_dir():
+            shutil.rmtree(item)
+        else:
+            item.unlink()
+    
+
 class Experiment:
-    def __init__(self, config_path: str, schema_path: str = Path(__file__).resolve().parents[0] / "schema.yaml"):
+    def __init__(self, config_path: str, schema_path: str = Path(__file__).resolve().parents[0] / "schema.yaml", name=None, overwrite=False):
+
+        if name is None:
+            name = "exp"
+        self.name = assign_name(name, project_root / "experiments", overwrite)
+
         self.config_path = Path(config_path)
         self.schema_path = Path(schema_path)
         self.config, self._schema = Experiment.load_config(config_path, schema_path)
@@ -71,7 +101,6 @@ class Experiment:
         config = self.config 
 
         # Make puzzle path
-        project_root = Path(__file__).resolve().parents[1]
         path = project_root / "benchmark/puzzles" / config.puzzle
         if not path.suffix:
             path = path.with_suffix(".pwp")
@@ -83,11 +112,13 @@ class Experiment:
         encoder = globals()[config.encoder](image.shape, config.n_obs)
         o = np.zeros(config.seq_len, dtype=np.int64)
         a = np.zeros(config.seq_len, dtype=np.int64)
+        input = np.zeros((config.seq_len,) + image.shape, dtype=np.int64)
 
         # Randomly take 10 actions and show observation
         for i in range(config.seq_len):
             action = np.random.randint(NUM_ACTIONS)
             
+            input[i] = image
             o[i] = encoder(image)
             a[i] = action
 
@@ -103,8 +134,7 @@ class Experiment:
         chmm.pseudocount = 0.0
         chmm.learn_viterbi_T(o, a, n_iter=100)
 
-        experiment_name = "exp1"
-        experiment_path = project_root / "experiments"/ experiment_name
+        experiment_path = project_root / "experiments" / self.name
         experiment_path.mkdir(parents=True, exist_ok=True)
         
         with open(experiment_path / "config.yml", "w") as f:
@@ -118,9 +148,20 @@ class Experiment:
 
 
 
+        np.save(experiment_path / "actions.npy", a)
+        np.save(experiment_path / "observations.npy", o)
+        np.save(experiment_path / "input.npy", input)
+        with open(experiment_path / "cscg.pkl", "wb") as f:
+            pickle.dump(chmm, f)
+        with open(experiment_path / "encoder.pkl", "wb") as f:
+            pickle.dump(encoder, f)
+
+
+
 
 if __name__ == "__main__":
     config_path = Path(__file__).resolve().parents[0] / "config.yaml"
 
-    exp = Experiment(config_path)
+    exp = Experiment(config_path, overwrite=True)
     exp.run()
+    # delete_all_experiments()
