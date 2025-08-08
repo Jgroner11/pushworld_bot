@@ -2,8 +2,10 @@ import yaml
 from pathlib import Path
 import shutil
 import pickle
+from dataclasses import dataclass
 
 import numpy as np
+from numpy.typing import NDArray
 
 from pushworld.gym_env import PushWorldEnv
 from pushworld.puzzle import NUM_ACTIONS
@@ -24,6 +26,70 @@ class ConfigWrapper(dict):
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
 
+@dataclass
+class ExperimentData:
+    config: ConfigWrapper
+    input: NDArray[np.int64]
+    o: NDArray[np.int64]
+    a: NDArray[np.int64]
+    encoder: nn.Module
+    chmm: CHMM
+
+
+    def save(self, experiment_name):
+        experiment_path = project_root / "experiments" / experiment_name
+        data_path  = experiment_path / "data"
+        data_path.mkdir(parents=True, exist_ok=True)
+
+        with open(experiment_path / "config.yml", "w") as f:
+            yaml.safe_dump(
+                dict(self.config),
+                f,
+                default_flow_style=False,
+                sort_keys=False,    # preserve the schema order
+                indent=2
+            )
+        np.save(data_path / "actions.npy", self.a)
+        np.save(data_path / "observations.npy", self.o)
+        np.save(data_path / "input.npy", self.input)
+        with open(data_path / "encoder.pkl", "wb") as f:
+            pickle.dump(self.encoder, f)
+        with open(data_path / "cscg.pkl", "wb") as f:
+            pickle.dump(self.chmm, f)
+
+    def get_all(self):
+        return self.config, self.input, self.o, self.a, self.encoder, self.chmm
+
+    @classmethod
+    def load(cls, experiment_name):
+        experiment_path = project_root / "experiments" / experiment_name
+        data_path = experiment_path / "data"
+
+        # Load config
+        with open(experiment_path / "config.yml", "r") as f:
+            config_dict = yaml.safe_load(f)
+        config = ConfigWrapper(config_dict)
+
+        # Load arrays
+        a = np.load(data_path / "actions.npy")
+        o = np.load(data_path / "observations.npy")
+        x = np.load(data_path / "input.npy")
+
+        # Load pickled objects
+        with open(data_path / "encoder.pkl", "rb") as f:
+            encoder = pickle.load(f)
+        with open(data_path / "cscg.pkl", "rb") as f:
+            chmm = pickle.load(f)
+
+        return cls(
+            config=config,
+            input=x,
+            o=o,
+            a=a,
+            encoder=encoder,
+            chmm=chmm
+        )
+    
 
 def assign_name(name, dir, overwrite):
     if not (dir / name).exists():
@@ -134,34 +200,15 @@ class Experiment:
         chmm.pseudocount = 0.0
         chmm.learn_viterbi_T(o, a, n_iter=100)
 
-        experiment_path = project_root / "experiments" / self.name
-        experiment_path.mkdir(parents=True, exist_ok=True)
+        data = ExperimentData(config, input, o, a, encoder, chmm)
+        data.save(self.name)
         
-        with open(experiment_path / "config.yml", "w") as f:
-            yaml.safe_dump(
-                dict(config),
-                f,
-                default_flow_style=False,
-                sort_keys=False,    # preserve the schema order
-                indent=2
-            )
-
-
-
-        np.save(experiment_path / "actions.npy", a)
-        np.save(experiment_path / "observations.npy", o)
-        np.save(experiment_path / "input.npy", input)
-        with open(experiment_path / "cscg.pkl", "wb") as f:
-            pickle.dump(chmm, f)
-        with open(experiment_path / "encoder.pkl", "wb") as f:
-            pickle.dump(encoder, f)
-
-
+        
 
 
 if __name__ == "__main__":
     config_path = Path(__file__).resolve().parents[0] / "config.yaml"
 
-    exp = Experiment(config_path, overwrite=True)
-    exp.run()
-    # delete_all_experiments()
+    # exp = Experiment(config_path, overwrite=False)
+    # exp.run()
+    delete_all_experiments()

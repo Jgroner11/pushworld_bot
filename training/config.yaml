@@ -1,2 +1,3 @@
-n_obs: 10
-seq_len: 10
+puzzle: "manual/simple"
+n_obs: 625
+seq_len: 10000
