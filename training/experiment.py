@@ -1,6 +1,9 @@
 import yaml
 from pathlib import Path
+import os
 import shutil
+import stat
+import time
 import pickle
 from dataclasses import dataclass
 
@@ -30,7 +33,7 @@ class ConfigWrapper(dict):
 class ExperimentData:
     config: ConfigWrapper
     input: NDArray[np.int64]
-    o: NDArray[np.int64]
+    x: NDArray[np.int64]
     a: NDArray[np.int64]
     encoder: nn.Module
     chmm: CHMM
@@ -50,7 +53,7 @@ class ExperimentData:
                 indent=2
             )
         np.save(data_path / "actions.npy", self.a)
-        np.save(data_path / "observations.npy", self.o)
+        np.save(data_path / "observations.npy", self.x)
         np.save(data_path / "input.npy", self.input)
         with open(data_path / "encoder.pkl", "wb") as f:
             pickle.dump(self.encoder, f)
@@ -58,11 +61,18 @@ class ExperimentData:
             pickle.dump(self.chmm, f)
 
     def get_all(self):
-        return self.config, self.input, self.o, self.a, self.encoder, self.chmm
+        """
+        Returns (config, input, x, a, encoder, chmm)
+        """
+        return self.config, self.input, self.x, self.a, self.encoder, self.chmm
 
     @classmethod
     def load(cls, experiment_name):
         experiment_path = project_root / "experiments" / experiment_name
+
+        if not experiment_path.exists():
+            raise Exception(f"Experiment {experiment_name} could not be found.")
+
         data_path = experiment_path / "data"
 
         # Load config
@@ -72,8 +82,8 @@ class ExperimentData:
 
         # Load arrays
         a = np.load(data_path / "actions.npy")
-        o = np.load(data_path / "observations.npy")
-        x = np.load(data_path / "input.npy")
+        x = np.load(data_path / "observations.npy")
+        input = np.load(data_path / "input.npy")
 
         # Load pickled objects
         with open(data_path / "encoder.pkl", "rb") as f:
@@ -83,8 +93,8 @@ class ExperimentData:
 
         return cls(
             config=config,
-            input=x,
-            o=o,
+            input=input,
+            x=x,
             a=a,
             encoder=encoder,
             chmm=chmm
@@ -103,12 +113,49 @@ def assign_name(name, dir, overwrite):
         i -= 1
     return f"{name}{i}"
 
-def delete_all_experiments():
-    for item in (project_root / "experiments").iterdir():
-        if item.is_dir():
-            shutil.rmtree(item)
-        else:
-            item.unlink()
+def _handle_remove_readonly(func, path, exc_info):
+    """shutil.rmtree onerror handler: make path writable then retry."""
+    try:
+        os.chmod(path, stat.S_IWRITE | stat.S_IREAD)
+    except Exception:
+        pass
+    try:
+        func(path)
+    except PermissionError:
+        # brief wait in case a sync client releases the handle
+        time.sleep(0.2)
+        func(path)
+
+def delete_all_experiments(root=None):
+    base = (project_root / "experiments") if root is None else Path(root)
+    if not base.exists():
+        return
+
+    for item in base.iterdir():
+        try:
+            if item.is_dir():
+                shutil.rmtree(item, onerror=_handle_remove_readonly)
+            else:
+                try:
+                    os.chmod(item, stat.S_IWRITE | stat.S_IREAD)
+                except Exception:
+                    pass
+                item.unlink()
+        except PermissionError:
+            # Last resort: rename to break open handles, then delete
+            temp = item.with_name(item.name + ".__del__")
+            try:
+                item.rename(temp)
+                if temp.is_dir():
+                    shutil.rmtree(temp, onerror=_handle_remove_readonly)
+                else:
+                    try:
+                        os.chmod(temp, stat.S_IWRITE | stat.S_IREAD)
+                    except Exception:
+                        pass
+                    temp.unlink()
+            except Exception as e:
+                print(f"Failed to remove {item}: {e}")
     
 
 class Experiment:
@@ -164,7 +211,9 @@ class Experiment:
         validate(self.config, self._schema)
 
     def run(self):
-        config = self.config 
+        config = self.config
+
+        np.random.seed(config.seed)
 
         # Make puzzle path
         path = project_root / "benchmark/puzzles" / config.puzzle
@@ -176,16 +225,15 @@ class Experiment:
         image, info = env.reset()
 
         encoder = globals()[config.encoder](image.shape, config.n_obs)
-        o = np.zeros(config.seq_len, dtype=np.int64)
+        x = np.zeros(config.seq_len, dtype=np.int64)
         a = np.zeros(config.seq_len, dtype=np.int64)
         input = np.zeros((config.seq_len,) + image.shape, dtype=np.int64)
 
-        # Randomly take 10 actions and show observation
         for i in range(config.seq_len):
             action = np.random.randint(NUM_ACTIONS)
             
             input[i] = image
-            o[i] = encoder(image)
+            x[i] = encoder(image)
             a[i] = action
 
             rets = env.step(action)
@@ -194,21 +242,21 @@ class Experiment:
 
         n_clones = np.ones(config.n_obs, dtype=np.int64) * 1
 
-        chmm = CHMM(n_clones=n_clones, pseudocount=2e-3, x=o, a=a, seed=42)  # Initialize the model
-        progression = chmm.learn_em_T(o, a, n_iter=100)  # Training
+        chmm = CHMM(n_clones=n_clones, pseudocount=2e-3, x=x, a=a, seed=42)  # Initialize the model
+        progression = chmm.learn_em_T(x, a, n_iter=100)  # Training
 
         chmm.pseudocount = 0.0
-        chmm.learn_viterbi_T(o, a, n_iter=100)
+        chmm.learn_viterbi_T(x, a, n_iter=100)
 
-        data = ExperimentData(config, input, o, a, encoder, chmm)
+        data = ExperimentData(config, input, x, a, encoder, chmm)
         data.save(self.name)
+
+    
         
         
-
-
 if __name__ == "__main__":
     config_path = Path(__file__).resolve().parents[0] / "config.yaml"
 
     # exp = Experiment(config_path, overwrite=False)
     # exp.run()
-    delete_all_experiments()
+    # delete_all_experiments()

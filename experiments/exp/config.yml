@@ -1,5 +1,0 @@
-puzzle: manual/actor_only
-encoder: IntEncoder
-n_obs: 25
-clones_per_obs: 1
-seq_len: 100

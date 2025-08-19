@@ -1,5 +1,5 @@
 import numpy as np
-from chmm_actions import CHMM, forwardE, datagen_structured_obs_room
+from chmm_actions import CHMM, forward, forwardE, datagen_structured_obs_room
 import matplotlib.pyplot as plt
 import igraph
 import matplotlib
@@ -83,29 +83,29 @@ class Plotting:
 
     @staticmethod
     def plot_heat_map(
-        chmm, x, a, V, output_file, multiple_episodes=False, vertex_size=30, flip=None, rotation = 0.
+        chmm, x, a, V, output_file, multiple_episodes=False, vertex_size=30, flip=None, rotation = 0., unique_states=None
     ):
         # States is a list of which latent node (ie state) is most active at each time step
-        states = chmm.decode(x, a)[1]
-
-        v = np.unique(states)
+        if unique_states is None: # Allow for passing in states directly to prevent decode being called every single plot
+            unique_states = np.unique(chmm.decode(x, a)[1])
+        
         if multiple_episodes:
-            T = chmm.C[:, v][:, :, v][:-1, 1:, 1:]
-            v = v[1:]
+            T = chmm.C[:, unique_states][:, :, unique_states][:-1, 1:, 1:]
+            unique_states = unique_states[1:]
         else:
-            T = chmm.C[:, v][:, :, v]
+            T = chmm.C[:, unique_states][:, :, unique_states]
         A = T.sum(0)
         A /= A.sum(1, keepdims=True)
         # A is a transition matrix of only the latent nodes (states) that get activated during walk of path
 
         # V_displayed represents the activity of all the nodes that are present in the A matrix/graph based on the inputted V activity for all the nodes
-        V_displayed_nodes = np.zeros(v.shape)
-        for i, id in enumerate(v):
+        V_displayed_nodes = np.zeros(unique_states.shape)
+        for i, id in enumerate(unique_states):
             V_displayed_nodes[i] = V[id]
 
         # print('sum V:', sum(V), 'sum Vdisp:', sum(V_displayed_nodes))
-
-        V_disp_norm = (V_displayed_nodes - np.min(V_displayed_nodes)) / (np.max(V_displayed_nodes) - np.min(V_displayed_nodes))
+        denom = np.max(V_displayed_nodes) - np.min(V_displayed_nodes)
+        V_disp_norm = (V_displayed_nodes - np.min(V_displayed_nodes)) * (1 / denom if denom != 0 else 0)
 
         # colormap = cm.get_cmap('viridis')
         colormap = matplotlib.colormaps['viridis']
@@ -122,7 +122,7 @@ class Plotting:
             output_file,
             layout=layout,
             vertex_color=colors,
-            vertex_label=v,
+            vertex_label=unique_states,
             vertex_size=vertex_size,
             margin=50,
         )
@@ -221,6 +221,33 @@ class Plotting:
         plt.draw()      
     
 class Reasoning:
+    @staticmethod
+    def sum_product_decode(chmm, x, a):
+        """Returns a probability distribution over latent states given a CSCG model and a sequence of state action pairs
+            ie what state am I in based on the sequence
+            uses sum product passing
+        chmm: CSCG created from CHMM class
+        x: np array of integer states
+        a: np array of integer actions
+
+        returns: x_future, a set of predicted future observations
+        
+        """
+        n_clones = chmm.n_clones
+        total_clones = sum(n_clones)
+
+        T_tr = chmm.T.transpose(0, 2, 1)
+        log2_lik, mess_fwd = forward(T_tr, chmm.Pi_x, n_clones, x, a, store_messages=True)
+        state_loc = np.hstack(([0], n_clones)).cumsum(0)
+        mess_loc = np.hstack(
+                (np.array([0], dtype=n_clones.dtype), n_clones[x])
+            ).cumsum()
+        
+        # v is a probability distribution over latent states at the end of the input sequence
+        v = np.zeros(total_clones)
+        v[state_loc[x[-1]]:state_loc[x[-1] + 1]] = mess_fwd[mess_loc[-2]:mess_loc[-1]]
+
+        return v
 
     @staticmethod
     def get_mess_fwd(chmm, x, pseudocount=0.0, pseudocount_E=0.0):

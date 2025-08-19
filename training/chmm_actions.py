@@ -4,6 +4,7 @@ import numpy as np
 import numba as nb
 from tqdm import trange
 import sys
+from functools import lru_cache
 
 
 def validate_seq(x, a, n_clones=None):

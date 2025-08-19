@@ -17,3 +17,7 @@ clones_per_obs:
 seq_len:
   default: 10
   description: "The number of actions to take in the environment. Each action steps the environment once and adds another data point."
+
+seed:
+  default: 49
+  description: "Seed for all random procecess to make experiments replicable"

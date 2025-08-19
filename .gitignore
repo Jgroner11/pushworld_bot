@@ -11,4 +11,5 @@ puzzle_images/**
 !puzzle_images/manual/
 !puzzle_images/manual/*.png
 
+
 experiments/**
