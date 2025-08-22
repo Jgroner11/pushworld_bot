@@ -1,3 +1,3 @@
-puzzle: "manual/simple"
-n_obs: 625
-seq_len: 10000
+puzzle: "manual/super_simple"
+n_obs: 3
+seq_len: 10

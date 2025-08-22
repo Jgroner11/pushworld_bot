@@ -248,6 +248,7 @@ class Experiment:
         chmm.pseudocount = 0.0
         chmm.learn_viterbi_T(x, a, n_iter=100)
 
+
         data = ExperimentData(config, input, x, a, encoder, chmm)
         data.save(self.name)
 
