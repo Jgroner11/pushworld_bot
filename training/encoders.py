@@ -17,8 +17,8 @@ class IntEncoder(nn.Module):
             return self.encode_multiple(x)
         else:
             raise Exception(f"Input doesn't match shape {self.input_shape}")
-            
-        
+
+
     def encode_single(self, x):
         key =  tuple(x.ravel().tolist())
         if key in self._map:
@@ -29,7 +29,7 @@ class IntEncoder(nn.Module):
             self._map[key] = self._size
             self._size += 1
             return self._map[key]
-        
+
     def encode_multiple(self, arr):
         r = torch.tensor(dtype=torch.int64)
         for x in arr:
@@ -55,6 +55,7 @@ class SmallCNN(nn.Module):
         with torch.no_grad():
             dummy = torch.zeros(1, in_channels, grid_size, grid_size)
             flat = self.net(dummy).shape[-1]
+
         self.head = nn.Sequential(
             nn.Linear(flat, 256),
             nn.ReLU(inplace=True),
@@ -66,4 +67,4 @@ class SmallCNN(nn.Module):
         z = self.net(x)
         logits = self.head(z)
         return logits
-    
+

@@ -444,7 +444,6 @@ def updateC(C, T, n_clones, mess_fwd, mess_bwd, x, a):
         q /= q.sum()
         C[aij, i_start:i_stop, j_start:j_stop] += q
 
-
 @nb.njit
 def forward(T_tr, Pi, n_clones, x, a, store_messages=False):
     """Log-probability of a sequence, and optionally, messages"""
