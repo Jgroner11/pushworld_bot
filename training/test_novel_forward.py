@@ -16,8 +16,14 @@ pi = torch.ones(n, dtype=torch.float32) / n
 
 a = torch.randint(low=0, high=n_actions, size=(t,))
 
-with open('models/model3.pkl', 'rb') as f:
-    chmm, _, _ = pickle.load(f)
+class NumpyCoreRedirectingUnpickler(pickle.Unpickler):
+    def find_class(self, module, name):
+        if module.startswith("numpy._core"):
+            module = module.replace("numpy._core", "numpy.core", 1)
+        return super().find_class(module, name)
+
+with open('models/model3.pkl', "rb") as f:
+    chmm, _, _ = NumpyCoreRedirectingUnpickler(f).load()
 
 T = torch.tensor(chmm.T, dtype=torch.float32)
 
