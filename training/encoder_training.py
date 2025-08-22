@@ -8,9 +8,8 @@ def encoder_loss(encoder, input, a, T, E, pi, observation_probs):
 
     """
     logits = get_logits(encoder, input)  # (T, O)
-    observation_probs = torch.exp(logits)
-    probability_of_observing = forward_algorithm_with_action_dependent_transitions(T, E, pi, observation_probs, a)
-    log_likelihood = torch.log(probability_of_observing)
+    observation_lls = torch.log_softmax(logits, dim=1)
+    log_likelihood = log_forward(T, E, pi, observation_lls, a)
     return -log_likelihood
 
 
@@ -84,9 +83,9 @@ def forward_with_actions_softobs(A_actions, E, pi, L, a):
     return log_likelihood, alpha, scales
 
 
-def log_forward(log_T, E, log_pi, observation_lls, a):
+def log_forward(T, E, pi, observation_lls, a):
     """
-    T: (T_len, N, N) action-dependent transition matrix
+    T: (A, N, N) action-dependent transition matrix
     N: number of states
     O: number of observations
     E: emission matrix (N, O) E[s, o] gives 0/1 prob that state s emits observation o
@@ -95,23 +94,21 @@ def log_forward(log_T, E, log_pi, observation_lls, a):
     a: action sequence
     """
 
-
-    N = log_pi.shape[0]
+    N = pi.shape[0]
     T_len = len(observation_lls)
+    log_T = torch.log(T)
 
-    alpha = torch.empty((T_len, N), dtype=log_pi.dtype, device=log_pi.device)
+    log_alpha = torch.empty((T_len, N), dtype=pi.dtype, device=pi.device)
     # just need to mask so that all locations where E = 0 get ll -inf.
+    idx = E.argmax(dim=1) # (N, ) idx[i] gives observation mapped to for state i
     # alpha[0] = log_pi + torch.logsumexp(log_E + observation_lls[0][None, :], dim=1)
-    alpha[0] = log_pi + observation_lls[0]
-    observation_lls[0][E[E==1]]
-
-
+    log_alpha[0] = torch.log(pi) + observation_lls[0][idx]
 
     for t in range(1, T_len):
         log_T_a = log_T[a[t - 1]]
-        alpha[t] = torch.logsumexp(alpha[t - 1][:, None] + log_T_a, dim=0) + torch.logsumexp(log_E + observation_lls[t][None, :], dim=1)
+        log_alpha[t] = torch.logsumexp(log_alpha[t - 1][:, None] + log_T_a, dim=0) + observation_lls[t][idx]
 
-    return alpha[-1].logsumexp(dim=0)
+    return log_alpha[-1].logsumexp(dim=0)
 
 def learn_encoder(encoder, input, a, T, E, pi, observation_probs, steps=100):
     """
