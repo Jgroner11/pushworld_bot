@@ -36,35 +36,48 @@ class IntEncoder(nn.Module):
             r.append(self.encode(x))
         return r
 
-class SmallCNN(nn.Module):
-    def __init__(self, in_channels: int, num_actions: int, grid_size: int):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Conv2d(in_channels, 32, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.BatchNorm2d(32),
-            nn.Conv2d(32, 64, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(2),  # H/2
-            nn.Conv2d(64, 128, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(2),  # H/4
-            nn.Flatten(),
+
+class SimpleCNN(nn.Module):
+    def __init__(self, input_shape, num_classes):
+        """
+        input_shape: tuple (H, W, C)
+        num_classes: number of output classes
+        """
+        super(SimpleCNN, self).__init__()
+
+        # Unpack input shape (PyTorch expects channels first)
+        H, W, C = input_shape
+        in_channels = C
+
+        # Feature extractor
+        self.features = nn.Sequential(
+            nn.Conv2d(in_channels, 16, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),  # halve size
+
+            nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2)   # halve again
         )
-        # Compute flattened size with a dummy forward
+
+        #  Trick: run dummy input through features to determine flattened size
         with torch.no_grad():
-            dummy = torch.zeros(1, in_channels, grid_size, grid_size)
-            flat = self.net(dummy).shape[-1]
+            dummy_input = torch.zeros(1, in_channels, H, W)
+            dummy_output = self.features(dummy_input)
+            flattened_size = dummy_output.view(1, -1).shape[1]
 
-        self.head = nn.Sequential(
-            nn.Linear(flat, 256),
-            nn.ReLU(inplace=True),
-            nn.Dropout(p=0.1),
-            nn.Linear(256, num_actions),
+        # Classifier
+        self.classifier = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(flattened_size, num_classes)
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        z = self.net(x)
-        logits = self.head(z)
-        return logits
+    def forward(self, x):
+        x = self.features(x)
+        x = self.classifier(x)
+        return x
 
+    def classify(self, x):
+        logits = self.forward(x)                     # shape: (batch_size, num_classes)
+        predicted_classes = torch.argmax(logits, dim=1)  # get index of max logit per sample
+        return predicted_classes

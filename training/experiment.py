@@ -227,6 +227,7 @@ class Experiment:
         encoder = globals()[config.encoder](image.shape, config.n_obs)
         x = np.zeros(config.seq_len, dtype=np.int64)
         a = np.zeros(config.seq_len, dtype=np.int64)
+        print(image.shape)
         input = np.zeros((config.seq_len,) + image.shape, dtype=np.int64)
 
         for i in range(config.seq_len):
@@ -247,6 +248,7 @@ class Experiment:
 
         chmm.pseudocount = 0.0
         chmm.learn_viterbi_T(x, a, n_iter=100)
+
 
         data = ExperimentData(config, input, x, a, encoder, chmm)
         data.save(self.name)
