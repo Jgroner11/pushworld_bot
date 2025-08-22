@@ -249,9 +249,19 @@ class Experiment:
         chmm.pseudocount = 0.0
         chmm.learn_viterbi_T(x, a, n_iter=100)
 
+        # config.n_obs
+        # config.clones_per_obs
 
-        data = ExperimentData(config, input, x, a, encoder, chmm)
-        data.save(self.name)
+        # T = torch.tensor(chmm.T, dtype=torch.float32)
+        # E = torch.zeros((n, config.), dtype=torch.float32)
+        # state_loc = np.hstack(([0], chmm.n_clones)).cumsum(0)
+        # for i in range(m):
+        #     E[state_loc[i]:state_loc[i+1], i] = 1.0        
+
+        #         data = ExperimentData(config, input, x, a, encoder, chmm)
+        #         data.save(self.name)
+
+        
 
     
         
