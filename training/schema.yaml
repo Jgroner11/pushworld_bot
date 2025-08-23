@@ -6,6 +6,18 @@ encoder:
   default: "IntEncoder"
   description: "An nn.Module for mapping an input to an observation. See encoders.py for list of options."
 
+separate_cscg_train_encoder:
+  default: null
+  description: "If not null, serves as a separate encoder for training the cscg. If you set this to IntEncoder, then you could make it so the CSCG learns a rich structure of states from direct mapping, putting less pressure on the actual encoder to figure out the actual graph structure as well."
+
+training_procedure:
+  n_iters_cscg:
+    default: 100
+    description: "Number of EM steps to train the HMM"
+  n_iters_encoder:
+    default: 100
+    description: "Number of Grad Descent steps to train the encoder"
+
 n_obs: 
   default: 10
   description: "The number of observations. The encoder maps an input to an observation and the cscg takes in a sequence of observations and predicts which latent clone of the observation the agent is in."

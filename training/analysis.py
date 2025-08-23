@@ -5,6 +5,7 @@ from pushworld.gym_env import PushWorldEnv
 from pushworld.puzzle import Actions, NUM_ACTIONS
 
 import numpy as np
+import torch
 from pathlib import Path
 from queue import Queue, Empty
 
@@ -69,7 +70,7 @@ class Analysis:
 
         # Give model a memory of the sequence, in the future this memory sequence could be a finite buffer
         input = [image]
-        x = [e.encoder(image)]
+        x = [e.encoder.classify(image)]
         a = []
         v = Reasoning.sum_product_decode(e.chmm, np.array(x, dtype=np.int64), np.array(a, dtype=np.int64)) # Identify initial state
 
@@ -123,12 +124,15 @@ class Analysis:
         while loop and plt.fignum_exists(game_fig.number) and plt.fignum_exists(cscg_fig.number):
             try:
                 action = act_q.get(timeout=.01)
+                print(e.encoder.classify(image))
+                print(e.encoder.forward(torch.as_tensor(image)))
+
 
                 if action == RESET:
                     # Reset env and reset memory
                     image, info = env.reset()
                     input = [image]
-                    x = [e.encoder(image)]
+                    x = [e.encoder.classify(image)]
                     a = []
                 else:
                     # step env and update memory
@@ -136,7 +140,7 @@ class Analysis:
                     image = rets[0]
                     a.append(action)
                     input.append(image)
-                    x.append(e.encoder(image))
+                    x.append(e.encoder.classify(image))
 
                 game_image.set_data(image)
                 v = Reasoning.sum_product_decode(e.chmm, np.array(x, dtype=np.int64), np.array(a, dtype=np.int64))

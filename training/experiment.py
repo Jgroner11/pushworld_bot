@@ -14,6 +14,8 @@ from pushworld.gym_env import PushWorldEnv
 from pushworld.puzzle import NUM_ACTIONS
 
 from encoders import *
+from encoder_training import learn_encoder
+
 from chmm_actions import CHMM
 
 project_root = Path(__file__).resolve().parents[1]
@@ -224,42 +226,50 @@ class Experiment:
         env = PushWorldEnv(puzzle_path, border_width=2, pixels_per_cell=20) # these are the defaults
         image, info = env.reset()
 
-        encoder = globals()[config.encoder](image.shape, config.n_obs)
+        if config.separate_cscg_train_encoder is not None:
+            encoder = globals()[config.separate_cscg_train_encoder](image.shape, config.n_obs)
+        else:
+            encoder = globals()[config.encoder](image.shape, config.n_obs)
+
         x = np.zeros(config.seq_len, dtype=np.int64)
         a = np.zeros(config.seq_len, dtype=np.int64)
-        print(image.shape)
         input = np.zeros((config.seq_len,) + image.shape, dtype=np.int64)
 
         for i in range(config.seq_len):
             action = np.random.randint(NUM_ACTIONS)
             
             input[i] = image
-            x[i] = encoder(image)
+            x[i] = encoder.classify(image)
             a[i] = action
 
             rets = env.step(action)
 
             image = rets[0]
 
-        n_clones = np.ones(config.n_obs, dtype=np.int64) * 1
+        n_clones = np.ones(config.n_obs, dtype=np.int64) * config.clones_per_obs
 
         chmm = CHMM(n_clones=n_clones, pseudocount=2e-3, x=x, a=a, seed=42)  # Initialize the model
-        progression = chmm.learn_em_T(x, a, n_iter=100)  # Training
+        progression = chmm.learn_em_T(x, a, n_iter=config.training_procedure.n_iters_cscg)  # Training
 
         chmm.pseudocount = 0.0
         chmm.learn_viterbi_T(x, a, n_iter=100)
 
-        # config.n_obs
-        # config.clones_per_obs
+        # If you previously set the encoder to the separate_cscg_train_encoder, now use the actual encoder for encoder training
+        if config.separate_cscg_train_encoder is not None:
+            encoder = globals()[config.encoder](image.shape, config.n_obs)
 
-        # T = torch.tensor(chmm.T, dtype=torch.float32)
-        # E = torch.zeros((n, config.), dtype=torch.float32)
-        # state_loc = np.hstack(([0], chmm.n_clones)).cumsum(0)
-        # for i in range(m):
-        #     E[state_loc[i]:state_loc[i+1], i] = 1.0        
+        if not isinstance(encoder, IntEncoder): # Done train encoder when using an IntEncoder (doesn't have weights)
+            T = torch.tensor(chmm.T, dtype=torch.float32)
+            E = torch.zeros((sum(chmm.n_clones), config.n_obs), dtype=torch.float32) # shape of E is n_latent_states x n_obs
+            state_loc = np.hstack(([0], chmm.n_clones)).cumsum(0)
+            for i in range(config.n_obs):
+                E[state_loc[i]:state_loc[i+1], i] = 1.0
+            pi = torch.tensor(chmm.Pi_x)
 
-        #         data = ExperimentData(config, input, x, a, encoder, chmm)
-        #         data.save(self.name)
+            learn_encoder(encoder, torch.as_tensor(input, dtype=torch.float32), a, T, E, pi, n_iters=config.training_procedure.n_iters_encoder)
+
+        data = ExperimentData(config, input, x, a, encoder, chmm)
+        data.save(self.name)
 
         
 

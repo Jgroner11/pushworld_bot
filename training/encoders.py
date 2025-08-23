@@ -10,15 +10,14 @@ class IntEncoder(nn.Module):
         self.input_shape = input_shape
         self.max_size = max_size
 
-    def forward(self, x):
+    def classify(self, x):
         if x.shape == self.input_shape:
             return self.encode_single(x)
         elif x.shape[1:] == self.input_shape:
             return self.encode_multiple(x)
         else:
             raise Exception(f"Input doesn't match shape {self.input_shape}")
-
-
+        
     def encode_single(self, x):
         key =  tuple(x.ravel().tolist())
         if key in self._map:
@@ -48,6 +47,8 @@ class SimpleCNN(nn.Module):
         # Unpack input shape (PyTorch expects channels first)
         H, W, C = input_shape
         in_channels = C
+        assert in_channels == 3
+        self.input_shape = input_shape
 
         # Feature extractor
         self.features = nn.Sequential(
@@ -73,11 +74,18 @@ class SimpleCNN(nn.Module):
         )
 
     def forward(self, x):
+        if x.ndim == len(self.input_shape):
+            x = x.unsqueeze(0)
+        x = x.permute(0, 3, 1, 2) #conv layer requires (batch, C, H, V) but our model requires (batch, H, V, C)
         x = self.features(x)
         x = self.classifier(x)
         return x
 
+    @torch.no_grad()
     def classify(self, x):
-        logits = self.forward(x)                     # shape: (batch_size, num_classes)
+        logits = self.forward(torch.as_tensor(x))                     # shape: (batch_size, num_classes)
         predicted_classes = torch.argmax(logits, dim=1)  # get index of max logit per sample
+        predicted_classes = predicted_classes.squeeze(0)
+        if predicted_classes.ndim == 0:
+            return predicted_classes.item()
         return predicted_classes

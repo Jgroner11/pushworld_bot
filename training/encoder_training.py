@@ -1,20 +1,15 @@
 import torch
-from encoders import SmallCNN
 
-def encoder_loss(encoder, input, a, T, E, pi, observation_probs):
+def encoder_loss(encoder, input, a, T, E, pi):
     """
-    input: (T, C, H, W) sequence of input images
+    input: (T, C, H, W) sequence of input images (TODO I think the channel dim comes after the H, W)
     encoder: nn.Module that converts image to logits
 
     """
-    logits = get_logits(encoder, input)  # (T, O)
+    logits = encoder(input)  # (T, O)
     observation_lls = torch.log_softmax(logits, dim=1)
     log_likelihood = log_forward(T, E, pi, observation_lls, a)
     return -log_likelihood
-
-
-def get_logits(encoder, input):
-    return encoder(input)
 
 
 def forward_algorithm_with_action_dependent_transitions(T, E, pi, observation_probs, a):
@@ -41,7 +36,7 @@ def forward_algorithm_with_action_dependent_transitions(T, E, pi, observation_pr
 
     return alpha[-1].sum()
 
-
+# TODO delete if not needed
 def forward_with_actions_softobs(A_actions, E, pi, L, a):
     """
     A_actions: (A, N, N)  transition matrices for each action
@@ -106,23 +101,20 @@ def log_forward(T, E, pi, observation_lls, a):
 
     for t in range(1, T_len):
         log_T_a = log_T[a[t - 1]]
-        log_alpha[t] = torch.logsumexp(log_alpha[t - 1][:, None] + log_T_a, dim=0) + observation_lls[t][idx]
+        log_alpha[t] = torch.logsumexp(log_alpha[t - 1][:, None] + log_T_a, dim=0) + observation_lls[t][idx] #TODO: understand indexing here, if you aren't gonna use the E matrix directly then it makes sense to just pass n_clones into this function instead of E
 
     return log_alpha[-1].logsumexp(dim=0)
 
-def learn_encoder(encoder, input, a, T, E, pi, observation_probs, steps=100):
+def learn_encoder(encoder, input, a, T, E, pi, n_iters=100):
     """
     Trains the encoder
     """
     optimizer = torch.optim.Adam(encoder.parameters(), lr=1e-3)
-    for step in range(steps):
+    for _ in range(n_iters):
         optimizer.zero_grad()
-        loss = encoder_loss(encoder, input, a, T, E, pi, observation_probs)
+        loss = encoder_loss(encoder, input, a, T, E, pi)
         loss.backward()
         optimizer.step()
 
     return loss
 
-
-if __name__ == "__main__":
-    encoder = SmallCNN()
