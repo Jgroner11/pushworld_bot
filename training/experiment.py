@@ -258,7 +258,7 @@ class Experiment:
         if config.separate_cscg_train_encoder is not None:
             encoder = globals()[config.encoder](image.shape, config.n_obs)
 
-        if not isinstance(encoder, IntEncoder): # Done train encoder when using an IntEncoder (doesn't have weights)
+        if not isinstance(encoder, IntEncoder): # Don't train encoder when using an IntEncoder (doesn't have weights)
             T = torch.tensor(chmm.T, dtype=torch.float32)
             E = torch.zeros((sum(chmm.n_clones), config.n_obs), dtype=torch.float32) # shape of E is n_latent_states x n_obs
             state_loc = np.hstack(([0], chmm.n_clones)).cumsum(0)
