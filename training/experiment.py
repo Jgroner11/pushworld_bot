@@ -101,7 +101,7 @@ class ExperimentData:
             encoder=encoder,
             chmm=chmm
         )
-    
+
 
 def assign_name(name, dir, overwrite):
     if not (dir / name).exists():
@@ -158,7 +158,7 @@ def delete_all_experiments(root=None):
                     temp.unlink()
             except Exception as e:
                 print(f"Failed to remove {item}: {e}")
-    
+
 
 class Experiment:
     def __init__(self, config_path: str, schema_path: str = Path(__file__).resolve().parents[0] / "schema.yaml", name=None, overwrite=False):
@@ -233,11 +233,11 @@ class Experiment:
 
         x = np.zeros(config.seq_len, dtype=np.int64)
         a = np.zeros(config.seq_len, dtype=np.int64)
-        input = np.zeros((config.seq_len,) + image.shape, dtype=np.int64)
+        input = np.zeros((config.seq_len,) + image.shape, dtype=np.float32)
 
         for i in range(config.seq_len):
             action = np.random.randint(NUM_ACTIONS)
-            
+
             input[i] = image
             x[i] = encoder.classify(image)
             a[i] = action
@@ -271,11 +271,11 @@ class Experiment:
         data = ExperimentData(config, input, x, a, encoder, chmm)
         data.save(self.name)
 
-        
 
-    
-        
-        
+
+
+
+
 if __name__ == "__main__":
     config_path = Path(__file__).resolve().parents[0] / "config.yaml"
 

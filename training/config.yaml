@@ -4,3 +4,5 @@ encoder: "SimpleCNN"
 separate_cscg_train_encoder: "IntEncoder"
 clones_per_obs: 1
 seq_len: 100
+training_procedure:
+  n_iters_encoder: 3

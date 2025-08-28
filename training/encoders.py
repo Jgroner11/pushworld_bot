@@ -17,7 +17,7 @@ class IntEncoder(nn.Module):
             return self.encode_multiple(x)
         else:
             raise Exception(f"Input doesn't match shape {self.input_shape}")
-        
+
     def encode_single(self, x):
         key =  tuple(x.ravel().tolist())
         if key in self._map:
@@ -76,6 +76,7 @@ class SimpleCNN(nn.Module):
     def forward(self, x):
         if x.ndim == len(self.input_shape):
             x = x.unsqueeze(0)
+
         x = x.permute(0, 3, 1, 2) #conv layer requires (batch, C, H, V) but our model requires (batch, H, V, C)
         x = self.features(x)
         x = self.classifier(x)
