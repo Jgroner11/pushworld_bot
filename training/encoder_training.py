@@ -2,13 +2,14 @@ import torch
 
 def encoder_loss(encoder, input, a, T, E, pi):
     """
-    input: (T, C, H, W) sequence of input images (TODO I think the channel dim comes after the H, W)
+    input: (T, H, W, C) sequence of input images
     encoder: nn.Module that converts image to logits
-
     """
     logits = encoder(input)  # (T, O)
     observation_lls = torch.log_softmax(logits, dim=1)
+    print(f'observation_lls={observation_lls}')
     log_likelihood = log_forward(T, E, pi, observation_lls, a)
+    print(f'log_likelihood={log_likelihood}')
     return -log_likelihood
 
 
@@ -88,7 +89,6 @@ def log_forward(T, E, pi, observation_lls, a):
     observation_probs: (T_len, O) observation_probs[t, o] gives likelihood of being in observation o at time t
     a: action sequence
     """
-
     N = pi.shape[0]
     T_len = len(observation_lls)
     log_T = torch.log(T)
@@ -98,6 +98,7 @@ def log_forward(T, E, pi, observation_lls, a):
     idx = E.argmax(dim=1) # (N, ) idx[i] gives observation mapped to for state i
     # alpha[0] = log_pi + torch.logsumexp(log_E + observation_lls[0][None, :], dim=1)
     log_alpha[0] = torch.log(pi) + observation_lls[0][idx]
+    # import pdb; pdb.set_trace()
 
     for t in range(1, T_len):
         log_T_a = log_T[a[t - 1]]
@@ -105,12 +106,13 @@ def log_forward(T, E, pi, observation_lls, a):
 
     return log_alpha[-1].logsumexp(dim=0)
 
-def learn_encoder(encoder, input, a, T, E, pi, n_iters=100):
+def learn_encoder(encoder, input, a, T, E, pi, n_iters=3):
     """
     Trains the encoder
     """
     optimizer = torch.optim.Adam(encoder.parameters(), lr=1e-3)
-    for _ in range(n_iters):
+    for iter in range(n_iters):
+        print(f'Iteration {iter}:')
         optimizer.zero_grad()
         loss = encoder_loss(encoder, input, a, T, E, pi)
         loss.backward()

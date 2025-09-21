@@ -41,7 +41,7 @@ training_procedure:
     default: 100
     description: "Number of Grad Descent steps to train the encoder"
 
-n_obs: 
+n_obs:
   default: 10
   description: "The number of observations. The encoder maps an input to an observation and the cscg takes in a sequence of observations and predicts which latent clone of the observation the agent is in."
 

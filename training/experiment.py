@@ -101,7 +101,7 @@ class ExperimentData:
             encoder=encoder,
             chmm=chmm
         )
-    
+
 
 def assign_name(name, dir, overwrite):
     if not (dir / name).exists():
@@ -158,7 +158,7 @@ def delete_all_experiments(root=None):
                     temp.unlink()
             except Exception as e:
                 print(f"Failed to remove {item}: {e}")
-    
+
 
 class Experiment:
     cur_trial_length = -1
@@ -248,7 +248,7 @@ class Experiment:
 
         x = np.zeros(config.seq_len, dtype=np.int64)
         a = np.zeros(config.seq_len, dtype=np.int64)
-        input = np.zeros((config.seq_len,) + image.shape, dtype=np.int64)
+        input = np.zeros((config.seq_len,) + image.shape, dtype=np.float32)
 
         n_steps = 0
         for i in range(config.seq_len):
@@ -289,6 +289,9 @@ class Experiment:
         data = ExperimentData(config, input, x, a, encoder, chmm)
         data.save(self.name)
 
+        
+
+    
         
         
 if __name__ == "__main__":
