@@ -34,6 +34,7 @@ class IntEncoder(nn.Module):
         for x in arr:
             r.append(self.encode(x))
         return r
+    
 
 
 class SimpleCNN(nn.Module):

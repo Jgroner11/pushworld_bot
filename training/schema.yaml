@@ -10,6 +10,29 @@ separate_cscg_train_encoder:
   default: null
   description: "If not null, serves as a separate encoder for training the cscg. If you set this to IntEncoder, then you could make it so the CSCG learns a rich structure of states from direct mapping, putting less pressure on the actual encoder to figure out the actual graph structure as well."
 
+action_selection:
+  exploration_strategy:
+    default: "pure_random"
+    description: "How the agent chooses actions."
+  agent_can_reset:
+    default: false
+    description: "If true, then the agent has the ability to reset the environment."  
+
+environment_reset:
+  method:
+    default: null
+    options: [null, "geometric", "gaussian"]
+    description: "Different methods for specifying a variable trial length. If null, the environment never resets."
+  p: 
+    default: .05
+    description: "Probability of reset for the geometric distribution method."
+  mean: 
+    default: 20
+    description: "Mean trial length for gaussian distribution."
+  variance:
+    default: 4
+    description: "Variance for gaussian distribution. If 0, becomes a fixed trial length."
+
 training_procedure:
   n_iters_cscg:
     default: 100
