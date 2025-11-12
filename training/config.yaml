@@ -2,7 +2,7 @@ puzzle: "manual/super_simple"
 n_obs: 3
 encoder: "SimpleCNN"
 separate_cscg_train_encoder: "IntEncoder"
-clones_per_obs: 1
+clones_per_obs: 2
 seq_len: 100
 training_procedure:
-  n_iters_encoder: 3
+  n_iters_encoder: 100
