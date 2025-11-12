@@ -161,8 +161,8 @@ def delete_all_experiments(root=None):
 
 
 class Experiment:
+    cur_trial_length = -1
     def __init__(self, config_path: str, schema_path: str = Path(__file__).resolve().parents[0] / "schema.yaml", name=None, overwrite=False):
-
         if name is None:
             name = "exp"
         self.name = assign_name(name, project_root / "experiments", overwrite)
@@ -171,6 +171,9 @@ class Experiment:
         self.schema_path = Path(schema_path)
         self.config, self._schema = Experiment.load_config(config_path, schema_path)
         self._validate_config()
+
+        Experiment.cur_trial_length = int(np.ceil(np.random.normal(loc=self.config.environment_reset.mean, scale=self.config.environment_reset.variance)))
+
 
     @staticmethod
     def load_config(config_path, schema_path):
@@ -212,8 +215,20 @@ class Experiment:
                             )
         validate(self.config, self._schema)
 
+    def check_reset(self, n_steps):
+        
+        match self.config.environment_reset.method:
+            case "geometric":
+                return np.random.rand() < self.config.environment_reset.p
+            case "gaussian":
+                if n_steps >= Experiment.cur_trial_length:
+                    Experiment.cur_trial_length = int(np.ceil(np.random.normal(loc=self.config.environment_reset.mean, scale=self.config.environment_reset.variance)))
+                    return True
+        return False
+
     def run(self):
         config = self.config
+
 
         np.random.seed(config.seed)
 
@@ -235,16 +250,19 @@ class Experiment:
         a = np.zeros(config.seq_len, dtype=np.int64)
         input = np.zeros((config.seq_len,) + image.shape, dtype=np.float32)
 
+        n_steps = 0
         for i in range(config.seq_len):
             action = np.random.randint(NUM_ACTIONS)
-
             input[i] = image
             x[i] = encoder.classify(image)
             a[i] = action
-
-            rets = env.step(action)
-
-            image = rets[0]
+            if self.check_reset(n_steps):
+                image, info = env.reset()
+                n_steps = 0
+            else:
+                rets = env.step(action)
+                image = rets[0]
+                n_steps += 1
 
         n_clones = np.ones(config.n_obs, dtype=np.int64) * config.clones_per_obs
 
@@ -271,14 +289,14 @@ class Experiment:
         data = ExperimentData(config, input, x, a, encoder, chmm)
         data.save(self.name)
 
+        
 
-
-
-
-
+    
+        
+        
 if __name__ == "__main__":
     config_path = Path(__file__).resolve().parents[0] / "config.yaml"
 
-    # exp = Experiment(config_path, overwrite=False)
-    # exp.run()
+    exp = Experiment(config_path, overwrite=False)
+    exp.run()
     # delete_all_experiments()

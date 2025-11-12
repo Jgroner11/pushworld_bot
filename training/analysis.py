@@ -125,7 +125,7 @@ class Analysis:
             try:
                 action = act_q.get(timeout=.01)
                 print(e.encoder.classify(image))
-                print(e.encoder.forward(torch.as_tensor(image)))
+                # print(e.encoder.forward(torch.as_tensor(image)))
 
 
                 if action == RESET:
