@@ -36,6 +36,29 @@ class IntEncoder(nn.Module):
         return r
     
 
+class SimpleLinearEncoder(nn.Module):
+    def __init__(self, input_shape, num_classes):
+        super().__init__()
+        self.input_shape = input_shape
+        H, W, C = input_shape
+        in_features = H * W * C
+        self.classifier = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(in_features, num_classes)
+        )
+
+    def forward(self, x):
+        x = torch.as_tensor(x)
+        if x.ndim == 3:
+            x = x.unsqueeze(0)
+        x = self.classifier(x)
+        return x
+
+    @torch.no_grad()
+    def classify(self, x):
+        logits = self.forward(x)
+        pred = torch.argmax(logits, dim=1)
+        return pred.squeeze(0).item() if pred.ndim == 1 and pred.numel() == 1 else pred
 
 class SimpleCNN(nn.Module):
     def __init__(self, input_shape, num_classes):

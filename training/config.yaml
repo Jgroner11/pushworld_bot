@@ -1,5 +1,7 @@
 puzzle: manual/simple
 encoder: IntEncoder
+separate_cscg_train_encoder: SimpleLinearEncoder
+
 n_obs: 625
 clones_per_obs: 1
 seq_len: 10000
