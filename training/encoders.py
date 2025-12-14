@@ -35,6 +35,9 @@ class IntEncoder(nn.Module):
             r.append(self.encode(x))
         return r
     
+class VectorQuantizer(nn.Module):
+    #TODO 
+    pass
 
 class SimpleLinearEncoder(nn.Module):
     def __init__(self, input_shape, num_classes):

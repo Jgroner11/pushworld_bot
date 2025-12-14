@@ -9,5 +9,5 @@ seed: 49
 
 environment_reset:
   method: "gaussian"
-  mean: 4
-  variance: 1
+  mean: 5
+  variance: 0
