@@ -217,27 +217,6 @@ def learn_encoder(encoder, input, a, T, E, pi, n_iters=3, n_inner_iters=10):
     return loss
 
 
-def grad_match_check(T, E, pi, a, encoder, input):
-    # Build logits once so both paths see identical inputs
-    logits = encoder(input).detach().requires_grad_(True)
-    observation_lls = F.log_softmax(logits, dim=1)
-
-    # Path A: end-to-end NLL through your forward
-    ll, _ = log_forward(T, E, pi, observation_lls, a)
-    nll = -ll
-    g_nll = torch.autograd.grad(nll, logits, retain_graph=True)[0]
-
-    # Path B: detach gamma, train with soft-label CE
-    with torch.no_grad():
-        log_gamma = log_fw_bw(T, E, pi, observation_lls, a)
-        p_soft = gamma_to_obs_soft_targets(log_gamma, E)
-    ce = cross_entropy_soft_targets(logits, p_soft)
-    g_ce = torch.autograd.grad(ce, logits)[0]
-
-    diff = (g_ce - g_nll).abs().max().item()
-    print(f"max |grad CE - grad NLL| = {diff:.3e}")
-    return diff
-
 def learn_encoder_old(encoder, input, a, T, E, pi, n_iters=3):
     """
     Trains the encoder
