@@ -1,4 +1,4 @@
-experiment_name = "simple_vq_uncompressed"
+experiment_name = "temp_debug"
 
 # from experiment import Experiment
 

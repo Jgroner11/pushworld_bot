@@ -1,14 +1,16 @@
-summary: "Vector Quantizer on simple environment with sufficient observations for totally unique quantization."
+summary: "Debug new training procedure"
 
-puzzle: "manual/simple"
-n_obs: 625
-encoder: "VectorQuantizer"
+puzzle: "manual/box"
+n_obs: 4
+encoder: "SimpleCNN"
 clones_per_obs: 1
-seq_len: 1000
+seq_len: 100
 training_procedure:
-  n_iters_encoder: 100
+  n_cycles: 5
+  n_iters_cscg: 100
+  n_iters_encoder: 5
 
 environment_reset:
   method: "gaussian"
-  mean: 4
+  mean: 6
   variance: 0

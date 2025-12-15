@@ -106,6 +106,10 @@ class SimpleCNN(nn.Module):
         if x.ndim == len(self.input_shape):
             x = x.unsqueeze(0)
 
+        if x.max() > 1.0:
+            x = x / 255.0
+        x = (x - 0.5) / 0.5   # optional but usually helps a lot
+
         x = x.permute(0, 3, 1, 2) #conv layer requires (batch, C, H, V) but our model requires (batch, H, V, C)
         x = self.features(x)
         x = self.classifier(x)

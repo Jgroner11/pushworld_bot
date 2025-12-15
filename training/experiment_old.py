@@ -229,8 +229,8 @@ class Experiment:
     def run(self):
         config = self.config
 
+
         np.random.seed(config.seed)
-        torch.manual_seed(config.seed)
 
         # Make puzzle path
         path = project_root / "benchmark/puzzles" / config.puzzle
@@ -246,10 +246,10 @@ class Experiment:
         else:
             encoder = globals()[config.encoder](image.shape, config.n_obs)
 
-
         x = np.zeros(config.seq_len, dtype=np.int64)
         a = np.zeros(config.seq_len, dtype=np.int64)
-        input = np.zeros((config.seq_len,) + image.shape, dtype=np.float32)        
+        input = np.zeros((config.seq_len,) + image.shape, dtype=np.float32)
+
 
         n_steps = 0
         for i in range(config.seq_len):
@@ -267,36 +267,38 @@ class Experiment:
         if isinstance(encoder, VectorQuantizer):
             encoder.fit(input)
 
-        x = np.asarray(encoder.classify(input), dtype=np.int64)
+        for i in range(config.seq_len):
+            x[i] = encoder.classify(input[i])
 
         n_clones = np.ones(config.n_obs, dtype=np.int64) * config.clones_per_obs
+
         chmm = CHMM(n_clones=n_clones, pseudocount=2e-3, x=x, a=a, seed=42)  # Initialize the model
         progression = chmm.learn_em_T(x, a, n_iter=config.training_procedure.n_iters_cscg)  # Training
 
-        pi = torch.tensor(chmm.Pi_x)
-        E = torch.zeros((sum(chmm.n_clones), config.n_obs), dtype=torch.float32) # shape of E is n_latent_states x n_obs
-        state_loc = np.hstack(([0], chmm.n_clones)).cumsum(0)
-        for i in range(config.n_obs):
-            E[state_loc[i]:state_loc[i+1], i] = 1.0
-            
-        for _ in range(config.training_procedure.n_cycles):
-            # Update encoder
-            T = torch.tensor(chmm.T, dtype=torch.float32)
-
-            learn_encoder(encoder, torch.as_tensor(input, dtype=torch.float32), a, T, E, pi, n_iters=config.training_procedure.n_iters_encoder)
-
-            # Update CSCG based on newly encoded values
-            x = np.asarray(encoder.classify(input), dtype=np.int64)
-            progression = chmm.learn_em_T(x, a, n_iter=config.training_procedure.n_iters_cscg)  # Training
-
-        # Final Viterbi cleaning after last iteration
         chmm.pseudocount = 0.0
         chmm.learn_viterbi_T(x, a, n_iter=100)
+
+        # If you previously set the encoder to the separate_cscg_train_encoder, now use the actual encoder for encoder training
+        if config.separate_cscg_train_encoder is not None:
+            encoder = globals()[config.encoder](image.shape, config.n_obs)
+
+        if not (isinstance(encoder, IntEncoder) or isinstance(encoder, VectorQuantizer)): # Don't train encoder when using an IntEncoder or Vector Quantizer(doesn't have weights)
+            T = torch.tensor(chmm.T, dtype=torch.float32)
+            E = torch.zeros((sum(chmm.n_clones), config.n_obs), dtype=torch.float32) # shape of E is n_latent_states x n_obs
+            state_loc = np.hstack(([0], chmm.n_clones)).cumsum(0)
+            for i in range(config.n_obs):
+                E[state_loc[i]:state_loc[i+1], i] = 1.0
+            pi = torch.tensor(chmm.Pi_x)
+
+            learn_encoder(encoder, torch.as_tensor(input, dtype=torch.float32), a, T, E, pi, n_iters=config.training_procedure.n_iters_encoder)
 
         data = ExperimentData(config, input, x, a, encoder, chmm)
         data.save(self.name)
 
-         
+        
+
+    
+        
         
 if __name__ == "__main__":
     config_path = Path(__file__).resolve().parents[0] / "config.yaml"

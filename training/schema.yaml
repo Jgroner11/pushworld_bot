@@ -34,6 +34,9 @@ environment_reset:
     description: "Variance for gaussian distribution. If 0, becomes a fixed trial length."
 
 training_procedure:
+  n_cycles:
+    default: 1
+    description: "How many times to train the HMM and encoder get trained"
   n_iters_cscg:
     default: 100
     description: "Number of EM steps to train the HMM"
