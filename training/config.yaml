@@ -1,11 +1,10 @@
-summary: "Another test of Alternate_CSCG_train, this time with the simple env."
+summary: "Vector Quantizer on simple environment with sufficient observations for totally unique quantization."
 
 puzzle: "manual/simple"
-n_obs: 30
-encoder: "SimpleCNN"
-separate_cscg_train_encoder: "IntEncoder"
+n_obs: 625
+encoder: "VectorQuantizer"
 clones_per_obs: 1
-seq_len: 100
+seq_len: 1000
 training_procedure:
   n_iters_encoder: 100
 

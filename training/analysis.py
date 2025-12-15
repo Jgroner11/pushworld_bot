@@ -56,6 +56,10 @@ class Analysis:
     def simulate_trained_model(experiment_name):
         e = ExperimentData.load(experiment_name=experiment_name)
 
+        print("x[0] in training:", e.x[0])
+        print("count of obs 27 in training:", np.sum(e.x == 27))
+
+
         # Put a prior on transitions so that a never seen before sequence still has some probability
         e.chmm.pseudocount = 2e-3
         e.chmm.update_T()
