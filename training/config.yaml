@@ -1,8 +1,15 @@
-puzzle: "manual/super_simple"
-n_obs: 3
+summary: "Another test of Alternate_CSCG_train, this time with the simple env."
+
+puzzle: "manual/simple"
+n_obs: 30
 encoder: "SimpleCNN"
 separate_cscg_train_encoder: "IntEncoder"
-clones_per_obs: 2
+clones_per_obs: 1
 seq_len: 100
 training_procedure:
   n_iters_encoder: 100
+
+environment_reset:
+  method: "gaussian"
+  mean: 4
+  variance: 0

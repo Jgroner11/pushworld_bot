@@ -1,6 +1,6 @@
 from experiment import Experiment
 
-experiment_name = "exp"
+experiment_name = "simple_alternate_enc"
 
 # Before running, set your parameters in the config file in this directory. You can see all possible parameters in the schem.yaml file in this directory
 config_path = "config.yaml"
