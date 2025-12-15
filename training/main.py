@@ -2,13 +2,8 @@ experiment_name = "temp_debug"
 
 from experiment import Experiment
 
-<<<<<<< HEAD
 # Before running, set your parameters in the config file in this directory. You can see all possible parameters in the schem.yaml file in this directory
 config_path = "config.yaml"
-=======
-# # Before running, set your parameters in the config file in this directory. You can see all possible parameters in the schem.yaml file in this directory
-config_path = "config2.yaml"
->>>>>>> 2cb8097 (set up training, wandb, smaller problem)
 
 exp = Experiment(config_path, name=experiment_name, overwrite=True)
 exp.run()

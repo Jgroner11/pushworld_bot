@@ -1,4 +1,4 @@
-puzzle: manual/tiny
+puzzle: manual/box
 encoder: SimpleCNN
 n_obs: 16
 clones_per_obs: 1

@@ -5,12 +5,19 @@ n_obs: 4
 encoder: "SimpleCNN"
 clones_per_obs: 1
 seq_len: 100
+
 training_procedure:
   n_cycles: 5
   n_iters_cscg: 100
   n_iters_encoder: 5
+  encoder_batch_size: 128
+  entropy_weight: 0.1
 
 environment_reset:
   method: "gaussian"
   mean: 6
   variance: 0
+
+wandb:
+  project: "cscg-pushworld"
+  entity: "jacob-simon"

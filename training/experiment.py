@@ -231,8 +231,6 @@ class Experiment:
     def run(self):
         config = self.config
 
-<<<<<<< HEAD
-=======
         # Initialize wandb if configured
         use_wandb = config.wandb and config.wandb.project
         if use_wandb:
@@ -243,7 +241,6 @@ class Experiment:
                 config=dict(config)
             )
 
->>>>>>> 2cb8097 (set up training, wandb, smaller problem)
         np.random.seed(config.seed)
         torch.manual_seed(config.seed)
 
@@ -264,14 +261,9 @@ class Experiment:
 
         x = np.zeros(config.seq_len, dtype=np.int64)
         a = np.zeros(config.seq_len, dtype=np.int64)
-<<<<<<< HEAD
-        input = np.zeros((config.seq_len,) + image.shape, dtype=np.float32)        
-
-=======
         input = np.zeros((config.seq_len,) + image.shape, dtype=np.float32)
 
         print('Collecting data')
->>>>>>> 2cb8097 (set up training, wandb, smaller problem)
         n_steps = 0
         for i in range(config.seq_len):
             action = np.random.randint(NUM_ACTIONS)
@@ -292,33 +284,19 @@ class Experiment:
         x = np.asarray(encoder.classify(input), dtype=np.int64)
 
         n_clones = np.ones(config.n_obs, dtype=np.int64) * config.clones_per_obs
-<<<<<<< HEAD
-=======
 
         print('Training CSCG')
->>>>>>> 2cb8097 (set up training, wandb, smaller problem)
         chmm = CHMM(n_clones=n_clones, pseudocount=2e-3, x=x, a=a, seed=42)  # Initialize the model
         progression = chmm.learn_em_T(x, a, n_iter=config.training_procedure.n_iters_cscg, use_wandb=use_wandb)  # Training
 
-<<<<<<< HEAD
         pi = torch.tensor(chmm.Pi_x)
         E = torch.zeros((sum(chmm.n_clones), config.n_obs), dtype=torch.float32) # shape of E is n_latent_states x n_obs
         state_loc = np.hstack(([0], chmm.n_clones)).cumsum(0)
         for i in range(config.n_obs):
             E[state_loc[i]:state_loc[i+1], i] = 1.0
-            
+
         for _ in range(config.training_procedure.n_cycles):
             # Update encoder
-=======
-        chmm.pseudocount = 0.0
-        chmm.learn_viterbi_T(x, a, n_iter=100, use_wandb=use_wandb)
-
-        # If you previously set the encoder to the separate_cscg_train_encoder, now use the actual encoder for encoder training
-        if config.separate_cscg_train_encoder is not None:
-            encoder = globals()[config.encoder](image.shape, config.n_obs)
-
-        if not (isinstance(encoder, IntEncoder) or isinstance(encoder, VectorQuantizer)): # Don't train encoder when using an IntEncoder or Vector Quantizer(doesn't have weights)
->>>>>>> 2cb8097 (set up training, wandb, smaller problem)
             T = torch.tensor(chmm.T, dtype=torch.float32)
 
             print('Training encoder')
@@ -338,24 +316,15 @@ class Experiment:
 
         # Final Viterbi cleaning after last iteration
         chmm.pseudocount = 0.0
-        chmm.learn_viterbi_T(x, a, n_iter=100)
+        chmm.learn_viterbi_T(x, a, n_iter=100, use_wandb=use_wandb)
 
         data = ExperimentData(config, input, x, a, encoder, chmm)
         data.save(self.name)
 
-<<<<<<< HEAD
-         
-        
-=======
         if use_wandb:
             wandb.finish()
 
 
-
-
-
-
->>>>>>> 2cb8097 (set up training, wandb, smaller problem)
 if __name__ == "__main__":
     config_path = Path(__file__).resolve().parents[0] / "config.yaml"
 
