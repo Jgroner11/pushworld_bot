@@ -1,4 +1,4 @@
-experiment_name = "temp_debug"
+experiment_name = "corridor"
 
 from experiment import Experiment
 

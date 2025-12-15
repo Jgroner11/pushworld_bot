@@ -230,7 +230,6 @@ def learn_encoder(encoder, input, a, T, E, pi, n_iters=3, n_inner_iters=10, use_
     seq_len = input.shape[0]
 
     for it in range(n_iters):
-        print(f'Iteration {it}:')
         # 1) compute gamma with current encoder, but STOP-GRAD through DP
         with torch.no_grad():
             logits_cur = encoder(input)                          # (T, O)
@@ -252,12 +251,14 @@ def learn_encoder(encoder, input, a, T, E, pi, n_iters=3, n_inner_iters=10, use_
                 batch_p_soft = p_soft
 
             logits = encoder(batch_input)
+            # print(torch.argmax(logits, dim=1))
+            # print('Targets:', batch_p_soft)
             ce_loss = cross_entropy_soft_targets(logits, batch_p_soft)
 
-            # Entropy regularization: positive weight minimizes entropy (confident predictions)
+            # encourage high-entropy predictions
             if entropy_weight != 0.0:
                 entropy = entropy_regularization(logits)
-                loss = ce_loss + entropy_weight * entropy
+                loss = ce_loss - entropy_weight * entropy
             else:
                 entropy = None
                 loss = ce_loss
@@ -277,6 +278,6 @@ def learn_encoder(encoder, input, a, T, E, pi, n_iters=3, n_inner_iters=10, use_
                     log_dict["encoder/entropy"] = entropy.item()
                 wandb.log(log_dict)
 
-        print(f'loss={loss.item()}')
+        print(f'Iter {it}, loss={loss.item()}')
     return loss
 

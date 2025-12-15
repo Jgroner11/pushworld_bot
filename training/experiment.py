@@ -12,6 +12,7 @@ from numpy.typing import NDArray
 
 from pushworld.gym_env import PushWorldEnv
 from pushworld.puzzle import NUM_ACTIONS
+from cscg_helpers import Plotting
 
 from encoders import *
 from encoder_training import learn_encoder
@@ -176,6 +177,10 @@ class Experiment:
 
         Experiment.cur_trial_length = int(np.ceil(np.random.normal(loc=self.config.environment_reset.mean, scale=self.config.environment_reset.variance)))
 
+        experiment_path = project_root / "experiments" / name
+        data_path  = experiment_path / "data"
+        data_path.mkdir(parents=True, exist_ok=True)
+
 
     @staticmethod
     def load_config(config_path, schema_path):
@@ -281,7 +286,11 @@ class Experiment:
             print('Fitting VQ encoder')
             encoder.fit(input)
 
-        x = np.asarray(encoder.classify(input), dtype=np.int64)
+        int_encoder = IntEncoder(image.shape, config.n_obs)
+        # x = np.asarray(encoder.classify(input), dtype=np.int64)
+        x = np.asarray(int_encoder.classify(input), dtype=np.int64)
+        print('Initial encoded observations:', x)
+        assert 0
 
         n_clones = np.ones(config.n_obs, dtype=np.int64) * config.clones_per_obs
 
@@ -295,7 +304,9 @@ class Experiment:
         for i in range(config.n_obs):
             E[state_loc[i]:state_loc[i+1], i] = 1.0
 
-        for _ in range(config.training_procedure.n_cycles):
+        for cycle in range(config.training_procedure.n_cycles):
+            Plotting.plot_graph(chmm, x, a, output_file=f"../experiments/{self.name}/cscg_{cycle}.png")
+
             # Update encoder
             T = torch.tensor(chmm.T, dtype=torch.float32)
 
@@ -312,7 +323,10 @@ class Experiment:
 
             # Update CSCG based on newly encoded values
             x = np.asarray(encoder.classify(input), dtype=np.int64)
+            print('New observations:', x)
             progression = chmm.learn_em_T(x, a, n_iter=config.training_procedure.n_iters_cscg)  # Training
+
+        Plotting.plot_graph(chmm, x, a, output_file=f"../experiments/{self.name}/cscg_{cycle}.png")
 
         # Final Viterbi cleaning after last iteration
         chmm.pseudocount = 0.0

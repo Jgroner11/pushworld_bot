@@ -36,10 +36,8 @@ class IntEncoder(nn.Module):
             return self._map[key]
 
     def encode_multiple(self, arr):
-        r = torch.tensor(dtype=torch.int64)
-        for x in arr:
-            r.append(self.encode(x))
-        return r
+          return torch.tensor([self.encode_single(x) for x in arr], dtype=torch.int64)
+
 
 class SimpleLinearEncoder(nn.Module):
     def __init__(self, input_shape, num_classes):
