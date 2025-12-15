@@ -196,29 +196,87 @@ def cross_entropy_soft_targets(logits, p_soft):
     return -(p_soft.detach() * log_q).sum(dim=1).mean()
 
 
-def learn_encoder(encoder, input, a, T, E, pi, n_iters=3, n_inner_iters=10, use_wandb=False):
+def entropy_regularization(logits):
+    """
+    Compute the entropy of the softmax distribution.
+    H(p) = -sum(p * log(p))
+    Returns mean entropy over batch.
+    """
+    p = F.softmax(logits, dim=1)
+    log_p = F.log_softmax(logits, dim=1)
+    entropy = -(p * log_p).sum(dim=1).mean()
+    return entropy
+
+
+def learn_encoder(encoder, input, a, T, E, pi, n_iters=3, n_inner_iters=10, use_wandb=False,
+                  batch_size=None, entropy_weight=0.0):
+    """
+    Train the encoder network.
+
+    Args:
+        encoder: The encoder network
+        input: (seq_len, H, W, C) sequence of input images
+        a: action sequence
+        T, E, pi: CHMM parameters
+        n_iters: Number of outer iterations (recompute soft targets)
+        n_inner_iters: Number of inner gradient steps per outer iteration
+        use_wandb: Whether to log to wandb
+        batch_size: If provided, train on random batches. If None, use full sequence.
+        entropy_weight: Weight for entropy regularization. Positive encourages confident
+                       predictions (minimizes entropy), negative encourages diversity.
+    """
     optimizer = torch.optim.Adam(encoder.parameters(), lr=3e-4)
     global_step = 0
+    seq_len = input.shape[0]
+
     for it in range(n_iters):
         print(f'Iteration {it}:')
         # 1) compute gamma with current encoder, but STOP-GRAD through DP
         with torch.no_grad():
             logits_cur = encoder(input)                          # (T, O)
             observation_lls = F.log_softmax(logits_cur, dim=1)   # (T, O)
-            # print(torch.argmax(observation_lls, dim=1))
             log_gamma = log_fw_bw(T, E, pi, observation_lls, a, stabilize=False)  # (T, N)
             p_soft = gamma_to_obs_soft_targets(log_gamma, E)     # (T, O)
 
         # 2) refine encoder against detached soft targets
         for inner in range(n_inner_iters):
             optimizer.zero_grad()
-            logits = encoder(input)                              # reuse model
-            loss = cross_entropy_soft_targets(logits, p_soft)
+
+            if batch_size is not None and batch_size < seq_len:
+                # Sample random batch indices
+                batch_idx = torch.randperm(seq_len)[:batch_size]
+                batch_input = input[batch_idx]
+                batch_p_soft = p_soft[batch_idx]
+            else:
+                batch_input = input
+                batch_p_soft = p_soft
+
+            logits = encoder(batch_input)
+            ce_loss = cross_entropy_soft_targets(logits, batch_p_soft)
+
+            # Entropy regularization: positive weight minimizes entropy (confident predictions)
+            if entropy_weight != 0.0:
+                entropy = entropy_regularization(logits)
+                loss = ce_loss + entropy_weight * entropy
+            else:
+                entropy = None
+                loss = ce_loss
+
             loss.backward()
             optimizer.step()
             global_step += 1
+
             if use_wandb:
-                wandb.log({"encoder/loss": loss.item(), "encoder/step": global_step, "encoder/outer_iter": it})
+                log_dict = {
+                    "encoder/loss": loss.item(),
+                    "encoder/ce_loss": ce_loss.item(),
+                    "encoder/step": global_step,
+                    "encoder/outer_iter": it
+                }
+                if entropy is not None:
+                    log_dict["encoder/entropy"] = entropy.item()
+                wandb.log(log_dict)
+
         print(f'loss={loss.item()}')
     return loss
 

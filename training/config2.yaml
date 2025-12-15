@@ -10,6 +10,10 @@ environment_reset:
   mean: 4
   variance: 1
 
+training_procedure:
+  encoder_batch_size: 128
+  entropy_weight: 0.1
+
 wandb:
   project: "cscg-pushworld"
   entity: "jacob-simon"

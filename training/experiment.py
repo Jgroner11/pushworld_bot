@@ -322,7 +322,15 @@ class Experiment:
             T = torch.tensor(chmm.T, dtype=torch.float32)
 
             print('Training encoder')
-            learn_encoder(encoder, torch.as_tensor(input, dtype=torch.float32), a, T, E, pi, n_iters=config.training_procedure.n_iters_encoder, use_wandb=use_wandb)
+            learn_encoder(
+                encoder,
+                torch.as_tensor(input, dtype=torch.float32),
+                a, T, E, pi,
+                n_iters=config.training_procedure.n_iters_encoder,
+                use_wandb=use_wandb,
+                batch_size=config.training_procedure.encoder_batch_size,
+                entropy_weight=config.training_procedure.entropy_weight
+            )
 
             # Update CSCG based on newly encoded values
             x = np.asarray(encoder.classify(input), dtype=np.int64)

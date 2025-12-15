@@ -43,6 +43,12 @@ training_procedure:
   n_iters_encoder:
     default: 100
     description: "Number of Grad Descent steps to train the encoder"
+  encoder_batch_size:
+    default: null
+    description: "Batch size for encoder training. If null, uses the full sequence."
+  entropy_weight:
+    default: 0.0
+    description: "Weight for entropy regularization in encoder loss. Positive values encourage confident predictions (low entropy), negative values encourage diverse predictions (high entropy)."
 
 n_obs:
   default: 10
