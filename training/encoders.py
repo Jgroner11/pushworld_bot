@@ -1,6 +1,12 @@
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+from sklearn.decomposition import IncrementalPCA
+from sklearn.cluster import KMeans
+from threadpoolctl import threadpool_limits
+
 
 class IntEncoder(nn.Module):
     def __init__(self, input_shape, max_size=torch.inf):
@@ -34,8 +40,30 @@ class IntEncoder(nn.Module):
         for x in arr:
             r.append(self.encode(x))
         return r
-    
 
+class SimpleLinearEncoder(nn.Module):
+    def __init__(self, input_shape, num_classes):
+        super().__init__()
+        self.input_shape = input_shape
+        H, W, C = input_shape
+        in_features = H * W * C
+        self.classifier = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(in_features, num_classes)
+        )
+
+    def forward(self, x):
+        x = torch.as_tensor(x)
+        if x.ndim == 3:
+            x = x.unsqueeze(0)
+        x = self.classifier(x)
+        return x
+
+    @torch.no_grad()
+    def classify(self, x):
+        logits = self.forward(x)
+        pred = torch.argmax(logits, dim=1)
+        return pred.squeeze(0).item() if pred.ndim == 1 and pred.numel() == 1 else pred
 
 class SimpleCNN(nn.Module):
     def __init__(self, input_shape, num_classes):
@@ -91,3 +119,79 @@ class SimpleCNN(nn.Module):
         if predicted_classes.ndim == 0:
             return predicted_classes.item()
         return predicted_classes
+
+class VectorQuantizer(nn.Module):
+    """
+    Classical vector quantizer:
+      image -> flatten -> PCA -> k-means -> observation id
+
+    Must be fit(images) before classify().
+    """
+    def __init__(
+        self,
+        input_shape,
+        num_classes,
+        n_components=64,
+        batch_size=4096,
+        seed=0,
+    ):
+        super().__init__()
+        self.input_shape = input_shape
+        self.num_classes = num_classes
+        self.n_components = n_components
+
+        self._fitted = False
+
+        self.pca = IncrementalPCA(
+            n_components=n_components,
+            batch_size=batch_size,
+        )
+
+        self.kmeans = KMeans(
+            n_clusters=num_classes,
+            random_state=seed,
+            n_init="auto",
+        )
+
+    def _preprocess(self, x):
+        x = np.asarray(x, dtype=np.float32)
+
+        if x.ndim == 3:
+            x = x[None, ...]
+
+        assert x.shape[1:] == self.input_shape, \
+            f"Expected {self.input_shape}, got {x.shape[1:]}"
+
+        if x.max() > 1.0:
+            x = x / 255.0
+
+        return x.reshape(x.shape[0], -1)
+
+    def fit(self, images):
+        X = self._preprocess(images)
+
+        bs = self.pca.batch_size
+        for i in range(0, X.shape[0], bs):
+            self.pca.partial_fit(X[i:i + bs])
+
+        Z = self.pca.transform(X)
+        with threadpool_limits(limits=1, user_api="openmp"):
+            self.kmeans.fit(Z)
+
+        self._fitted = True
+        return self
+
+    def classify(self, x):
+        if not self._fitted:
+            raise RuntimeError(
+                "VQEncoder must be fit(images) before classify()."
+            )
+
+        X = self._preprocess(x)
+        Z = self.pca.transform(X)
+        ids = self.kmeans.predict(Z)
+
+        if np.asarray(x).ndim == 3:
+            return int(ids[0])
+        return ids
+

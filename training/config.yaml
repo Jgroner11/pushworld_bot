@@ -1,11 +1,14 @@
-puzzle: manual/simple
-encoder: IntEncoder
+summary: "Vector Quantizer on simple environment with sufficient observations for totally unique quantization."
+
+puzzle: "manual/simple"
 n_obs: 625
+encoder: "VectorQuantizer"
 clones_per_obs: 1
-seq_len: 10000
-seed: 49
+seq_len: 1000
+training_procedure:
+  n_iters_encoder: 100
 
 environment_reset:
   method: "gaussian"
   mean: 4
-  variance: 1
+  variance: 0

@@ -56,3 +56,7 @@ seq_len:
 seed:
   default: 49
   description: "Seed for all random procecess to make experiments replicable"
+
+summary:
+  default: ""
+  description: "High level exlanation of the purpose of this task."
