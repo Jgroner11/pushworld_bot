@@ -63,3 +63,11 @@ seed:
 summary:
   default: ""
   description: "High level exlanation of the purpose of this task."
+
+wandb:
+  project:
+    default: null
+    description: "W&B project name. If null, wandb is disabled."
+  entity:
+    default: null
+    description: "W&B entity (username or team name)."

@@ -1,3 +1,4 @@
+training/wandb/
 venv/
 __pycache__/
 *.pyc

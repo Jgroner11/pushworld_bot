@@ -1,11 +1,15 @@
-puzzle: manual/simple
-encoder: IntEncoder
-n_obs: 625
+puzzle: manual/tiny
+encoder: SimpleCNN
+n_obs: 16
 clones_per_obs: 1
-seq_len: 10000
+seq_len: 1000
 seed: 49
 
 environment_reset:
   method: "gaussian"
   mean: 4
   variance: 1
+
+wandb:
+  project: "cscg-pushworld"
+  entity: "jacob-simon"

@@ -6,6 +6,8 @@ from tqdm import trange
 import sys
 from functools import lru_cache
 
+import wandb
+
 
 def validate_seq(x, a, n_clones=None):
     """Validate an input sequence of observations x and actions a"""
@@ -197,7 +199,7 @@ class CHMM(object):
         states = backtraceE(self.T, E, self.n_clones, x, a, mess_fwd)
         return -log2_lik, states
 
-    def learn_em_T(self, x, a, n_iter=100, term_early=True):
+    def learn_em_T(self, x, a, n_iter=100, term_early=True, use_wandb=False):
         """Run EM training, keeping E deterministic and fixed, learning T"""
         sys.stdout.flush()
         convergence = []
@@ -219,13 +221,15 @@ class CHMM(object):
             self.update_T()
             convergence.append(-log2_lik.mean())
             pbar.set_postfix(train_bps=convergence[-1])
+            if use_wandb:
+                wandb.log({"cscg_em/train_bps": convergence[-1], "cscg_em/iteration": it})
             if log2_lik.mean() <= log2_lik_old:
                 if term_early:
                     break
             log2_lik_old = log2_lik.mean()
         return convergence
 
-    def learn_viterbi_T(self, x, a, n_iter=100):
+    def learn_viterbi_T(self, x, a, n_iter=100, use_wandb=False):
         """Run Viterbi training, keeping E deterministic and fixed, learning T"""
         sys.stdout.flush()
         convergence = []
@@ -255,6 +259,8 @@ class CHMM(object):
 
             convergence.append(-log2_lik.mean())
             pbar.set_postfix(train_bps=convergence[-1])
+            if use_wandb:
+                wandb.log({"cscg_viterbi/train_bps": convergence[-1], "cscg_viterbi/iteration": it})
             if log2_lik.mean() <= log2_lik_old:
                 break
             log2_lik_old = log2_lik.mean()

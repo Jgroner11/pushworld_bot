@@ -1,6 +1,8 @@
 import torch
 import torch.nn.functional as F
 
+import wandb
+
 def encoder_loss(encoder, input, a, T, E, pi, *, stabilize=True, epsilon=1e-6):
     """
     input: (T, H, W, C) sequence of input images
@@ -194,16 +196,17 @@ def cross_entropy_soft_targets(logits, p_soft):
     return -(p_soft.detach() * log_q).sum(dim=1).mean()
 
 
-def learn_encoder(encoder, input, a, T, E, pi, n_iters=3, n_inner_iters=10):
+def learn_encoder(encoder, input, a, T, E, pi, n_iters=3, n_inner_iters=10, use_wandb=False):
     optimizer = torch.optim.Adam(encoder.parameters(), lr=3e-4)
+    global_step = 0
     for it in range(n_iters):
         print(f'Iteration {it}:')
         # 1) compute gamma with current encoder, but STOP-GRAD through DP
         with torch.no_grad():
             logits_cur = encoder(input)                          # (T, O)
             observation_lls = F.log_softmax(logits_cur, dim=1)   # (T, O)
-            print(torch.argmax(observation_lls, dim=1))
-            log_gamma = log_fw_bw(T, E, pi, observation_lls, a)  # (T, N)
+            # print(torch.argmax(observation_lls, dim=1))
+            log_gamma = log_fw_bw(T, E, pi, observation_lls, a, stabilize=False)  # (T, N)
             p_soft = gamma_to_obs_soft_targets(log_gamma, E)     # (T, O)
 
         # 2) refine encoder against detached soft targets
@@ -213,24 +216,9 @@ def learn_encoder(encoder, input, a, T, E, pi, n_iters=3, n_inner_iters=10):
             loss = cross_entropy_soft_targets(logits, p_soft)
             loss.backward()
             optimizer.step()
+            global_step += 1
+            if use_wandb:
+                wandb.log({"encoder/loss": loss.item(), "encoder/step": global_step, "encoder/outer_iter": it})
         print(f'loss={loss.item()}')
     return loss
-
-
-def learn_encoder_old(encoder, input, a, T, E, pi, n_iters=3):
-    """
-    Trains the encoder
-    """
-
-
-    optimizer = torch.optim.Adam(encoder.parameters(), lr=1e-5)
-    for iter in range(n_iters):
-        print(f'Iteration {iter}:')
-        optimizer.zero_grad()
-        loss = encoder_loss(encoder, input, a, T, E, pi)
-        loss.backward()
-        optimizer.step()
-
-    return loss
-
 
