@@ -1,4 +1,4 @@
-experiment_name = "corridor"
+experiment_name = "simple_alternate_enc"
 
 from experiment import Experiment
 
@@ -15,7 +15,7 @@ from cscg_helpers import Plotting
 e = ExperimentData.load(experiment_name=experiment_name)
 Plotting.plot_graph(e.chmm, e.x, e.a, output_file=f"../experiments/{experiment_name}/cscg.png")
 
-# from analysis import Analysis
+from analysis import Analysis
 
 # Use "a", "r" and arrow keys to move the agent while viewing the inferred state
-# Analysis.simulate_trained_model(experiment_name=experiment_name)
+Analysis.simulate_trained_model(experiment_name=experiment_name)

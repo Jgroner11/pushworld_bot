@@ -286,11 +286,10 @@ class Experiment:
             print('Fitting VQ encoder')
             encoder.fit(input)
 
-        int_encoder = IntEncoder(image.shape, config.n_obs)
-        # x = np.asarray(encoder.classify(input), dtype=np.int64)
-        x = np.asarray(int_encoder.classify(input), dtype=np.int64)
+        # int_encoder = IntEncoder(image.shape, config.n_obs)
+        # x = np.asarray(int_encoder.classify(input), dtype=np.int64)
+        x = np.asarray(encoder.classify(input), dtype=np.int64)
         print('Initial encoded observations:', x)
-        assert 0
 
         n_clones = np.ones(config.n_obs, dtype=np.int64) * config.clones_per_obs
 
