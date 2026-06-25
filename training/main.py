@@ -1,12 +1,12 @@
-experiment_name = "simple_alternate_enc"
+experiment_name = "first_VQ"
 
 from experiment import Experiment
 
 # Before running, set your parameters in the config file in this directory. You can see all possible parameters in the schem.yaml file in this directory
-config_path = "config.yaml"
+# config_path = "config.yaml"
 
-exp = Experiment(config_path, name=experiment_name, overwrite=True)
-exp.run()
+# exp = Experiment(config_path, name=experiment_name, overwrite=True)
+# exp.run()
 
 
 from experiment import ExperimentData

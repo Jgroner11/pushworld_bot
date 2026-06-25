@@ -258,10 +258,7 @@ class Experiment:
         env = PushWorldEnv(puzzle_path, border_width=2, pixels_per_cell=20) # these are the defaults
         image, info = env.reset()
 
-        if config.separate_cscg_train_encoder is not None:
-            encoder = globals()[config.separate_cscg_train_encoder](image.shape, config.n_obs)
-        else:
-            encoder = globals()[config.encoder](image.shape, config.n_obs)
+        encoder = globals()[config.encoder](image.shape, config.n_obs)
 
 
         x = np.zeros(config.seq_len, dtype=np.int64)
@@ -282,51 +279,55 @@ class Experiment:
                 image = rets[0]
                 n_steps += 1
 
-        if isinstance(encoder, VectorQuantizer):
-            print('Fitting VQ encoder')
-            encoder.fit(input)
-
-        # int_encoder = IntEncoder(image.shape, config.n_obs)
-        # x = np.asarray(int_encoder.classify(input), dtype=np.int64)
-        x = np.asarray(encoder.classify(input), dtype=np.int64)
-        print('Initial encoded observations:', x)
-
         n_clones = np.ones(config.n_obs, dtype=np.int64) * config.clones_per_obs
+        chmm = CHMM(n_clones=n_clones, pseudocount=2e-3, x=np.zeros(config.seq_len, dtype=np.int64), a=a, seed=42)
 
-        print('Training CSCG')
-        chmm = CHMM(n_clones=n_clones, pseudocount=2e-3, x=x, a=a, seed=42)  # Initialize the model
-        progression = chmm.learn_em_T(x, a, n_iter=config.training_procedure.n_iters_cscg, use_wandb=use_wandb)  # Training
+        if isinstance(encoder, (SimpleCNN, SimpleLinearEncoder)): # Cyclical training: encoder and CSCG are trained alternately, each informing the next
+            for cycle in range(config.training_procedure.n_cycles):
+                T = torch.tensor(chmm.T, dtype=torch.float32)
+                pi = torch.tensor(chmm.Pi_x)
+                E = torch.zeros((sum(chmm.n_clones), config.n_obs), dtype=torch.float32)
+                state_loc = np.hstack(([0], chmm.n_clones)).cumsum(0)
+                for i in range(config.n_obs):
+                    E[state_loc[i]:state_loc[i+1], i] = 1.0
 
-        pi = torch.tensor(chmm.Pi_x)
-        E = torch.zeros((sum(chmm.n_clones), config.n_obs), dtype=torch.float32) # shape of E is n_latent_states x n_obs
-        state_loc = np.hstack(([0], chmm.n_clones)).cumsum(0)
-        for i in range(config.n_obs):
-            E[state_loc[i]:state_loc[i+1], i] = 1.0
+                print(f'Cycle {cycle}: training encoder')
+                learn_encoder(
+                    encoder,
+                    torch.as_tensor(input, dtype=torch.float32),
+                    a, T, E, pi,
+                    n_iters=config.training_procedure.n_iters_encoder,
+                    use_wandb=use_wandb,
+                    batch_size=config.training_procedure.encoder_batch_size,
+                    entropy_weight=config.training_procedure.entropy_weight
+                )
 
-        for cycle in range(config.training_procedure.n_cycles):
-            Plotting.plot_graph(chmm, x, a, output_file=f"../experiments/{self.name}/cscg_{cycle}.png")
+                x = np.asarray(encoder.classify(input), dtype=np.int64)
+                print(f'Cycle {cycle}: observations:', x)
+                chmm.learn_em_T(x, a, n_iter=config.training_procedure.n_iters_cscg, use_wandb=use_wandb)
 
-            # Update encoder
-            T = torch.tensor(chmm.T, dtype=torch.float32)
+                Plotting.plot_graph(chmm, x, a, output_file=f"../experiments/{self.name}/cscg_{cycle}.png")
+        else: # For these encoders just learn once
+            if isinstance(encoder, VectorQuantizer):
+                print('Fitting VQ encoder')
+                encoder.fit(input)
+            elif isinstance(encoder, HopfieldVQ):
+                print('Training HopfieldVQ on raw sequence')
+                encoder.train_on_sequence(
+                    input,
+                    n_iters=config.training_procedure.n_iters_encoder,
+                    batch_size=config.training_procedure.encoder_batch_size,
+                    use_wandb=use_wandb,
+                )
+            elif not isinstance(encoder, IntEncoder):
+                raise TypeError(f"Unknown encoder type: {type(encoder)}")
 
-            print('Training encoder')
-            learn_encoder(
-                encoder,
-                torch.as_tensor(input, dtype=torch.float32),
-                a, T, E, pi,
-                n_iters=config.training_procedure.n_iters_encoder,
-                use_wandb=use_wandb,
-                batch_size=config.training_procedure.encoder_batch_size,
-                entropy_weight=config.training_procedure.entropy_weight
-            )
-
-            # Update CSCG based on newly encoded values
             x = np.asarray(encoder.classify(input), dtype=np.int64)
-            print('New observations:', x)
-            progression = chmm.learn_em_T(x, a, n_iter=config.training_procedure.n_iters_cscg)  # Training
+            print('Observations:', x)
+            chmm.learn_em_T(x, a, n_iter=config.training_procedure.n_iters_cscg, use_wandb=use_wandb)
 
-        Plotting.plot_graph(chmm, x, a, output_file=f"../experiments/{self.name}/cscg_{cycle}.png")
 
+            Plotting.plot_graph(chmm, x, a, output_file=f"../experiments/{self.name}/cscg_final.png")
         # Final Viterbi cleaning after last iteration
         chmm.pseudocount = 0.0
         chmm.learn_viterbi_T(x, a, n_iter=100, use_wandb=use_wandb)

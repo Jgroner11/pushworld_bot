@@ -1,17 +1,13 @@
 summary: "Debug new training procedure"
 
 puzzle: "manual/corridor6x1"
-n_obs: 3
-encoder: "SimpleCNN"
-clones_per_obs: 1
-seq_len: 300
+n_obs: 4
+encoder: "VectorQuantizer"
+clones_per_obs: 2
+seq_len: 1000
 
 training_procedure:
-  n_cycles: 5
   n_iters_cscg: 100
-  n_iters_encoder: 3
-  encoder_batch_size: 128
-  entropy_weight: 10
 
 environment_reset:
   method: null

@@ -6,9 +6,6 @@ encoder:
   default: "IntEncoder"
   description: "An nn.Module for mapping an input to an observation. See encoders.py for list of options."
 
-separate_cscg_train_encoder:
-  default: null
-  description: "If not null, serves as a separate encoder for training the cscg. If you set this to IntEncoder, then you could make it so the CSCG learns a rich structure of states from direct mapping, putting less pressure on the actual encoder to figure out the actual graph structure as well."
 
 action_selection:
   exploration_strategy:
@@ -36,7 +33,7 @@ environment_reset:
 training_procedure:
   n_cycles:
     default: 1
-    description: "How many times to train the HMM and encoder get trained"
+    description: "How many times the encoder and CSCG are alternately retrained. Only applies to gradient-based encoders (SimpleCNN, SimpleLinearEncoder) that use the CSCG-supervised training loop. For all other encoders (VectorQuantizer, HopfieldVQ, IntEncoder), this parameter is ignored and training always runs once."
   n_iters_cscg:
     default: 100
     description: "Number of EM steps to train the HMM"
