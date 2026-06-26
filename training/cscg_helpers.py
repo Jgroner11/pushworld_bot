@@ -58,7 +58,8 @@ class Plotting:
         else:
             T = chmm.C[:, v][:, :, v]
         A = T.sum(0)
-        A /= A.sum(1, keepdims=True)
+        row_sums = A.sum(1, keepdims=True)
+        np.divide(A, row_sums, out=A, where=row_sums > 0)
 
         g = igraph.Graph.Adjacency((A > 0).tolist())
         node_labels = np.arange(len(chmm.n_clones)).repeat(n_clones)[v]
@@ -95,7 +96,8 @@ class Plotting:
         else:
             T = chmm.C[:, unique_states][:, :, unique_states]
         A = T.sum(0)
-        A /= A.sum(1, keepdims=True)
+        row_sums = A.sum(1, keepdims=True)
+        np.divide(A, row_sums, out=A, where=row_sums > 0)
         # A is a transition matrix of only the latent nodes (states) that get activated during walk of path
 
         # V_displayed represents the activity of all the nodes that are present in the A matrix/graph based on the inputted V activity for all the nodes

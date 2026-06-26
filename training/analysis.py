@@ -124,7 +124,7 @@ class Analysis:
         while loop and plt.fignum_exists(game_fig.number) and plt.fignum_exists(cscg_fig.number):
             try:
                 action = act_q.get(timeout=.01)
-                print(e.encoder.classify(image))
+                print(e.encoder.classify(image), info)
                 # print(e.encoder.forward(torch.as_tensor(image)))
 
 

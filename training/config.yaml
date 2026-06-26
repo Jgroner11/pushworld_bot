@@ -1,10 +1,10 @@
-summary: "Debug new training procedure"
+summary: "Need to try the simple room with the VQ to add goal region detection"
 
-puzzle: "manual/corridor6x1"
-n_obs: 4
+puzzle: "manual/simple"
+n_obs: 20
 encoder: "VectorQuantizer"
-clones_per_obs: 2
-seq_len: 1000
+clones_per_obs: 20
+seq_len: 100
 
 training_procedure:
   n_iters_cscg: 100
@@ -16,4 +16,4 @@ environment_reset:
 
 wandb:
   project: "cscg-pushworld"
-  entity: "jacob-simon"
+  entity: "jacobgroner-cornell-university"

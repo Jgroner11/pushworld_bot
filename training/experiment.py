@@ -306,7 +306,7 @@ class Experiment:
                 print(f'Cycle {cycle}: observations:', x)
                 chmm.learn_em_T(x, a, n_iter=config.training_procedure.n_iters_cscg, use_wandb=use_wandb)
 
-                Plotting.plot_graph(chmm, x, a, output_file=f"../experiments/{self.name}/cscg_{cycle}.png")
+                Plotting.plot_graph(chmm, x, a, output_file=project_root / "experiments" / self.name / f"cscg_{cycle}.png")
         else: # For these encoders just learn once
             if isinstance(encoder, VectorQuantizer):
                 print('Fitting VQ encoder')
@@ -327,7 +327,7 @@ class Experiment:
             chmm.learn_em_T(x, a, n_iter=config.training_procedure.n_iters_cscg, use_wandb=use_wandb)
 
 
-            Plotting.plot_graph(chmm, x, a, output_file=f"../experiments/{self.name}/cscg_final.png")
+            Plotting.plot_graph(chmm, x, a, output_file=project_root / "experiments" / self.name / "cscg_final.png")
         # Final Viterbi cleaning after last iteration
         chmm.pseudocount = 0.0
         chmm.learn_viterbi_T(x, a, n_iter=100, use_wandb=use_wandb)
