@@ -4,14 +4,14 @@ puzzle: "manual/simple"
 n_obs: 20
 encoder: "VectorQuantizer"
 clones_per_obs: 20
-seq_len: 100
+seq_len: 2000
 
 training_procedure:
   n_iters_cscg: 100
 
 environment_reset:
-  method: null
-  mean: 6
+  method: gaussian
+  mean: 15
   variance: 0
 
 wandb:
